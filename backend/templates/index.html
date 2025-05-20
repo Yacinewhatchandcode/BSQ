@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spiritual Quest</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="/static/style.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Spiritual Quest</h1>
+            <p>Your journey to spiritual wisdom begins here</p>
+        </div>
+
+        <!-- Chat Interface -->
+        <div class="chat-container">
+            <!-- Messages Container -->
+            <div id="messages" class="messages">
+                <div class="message bot-message">
+                    Welcome to your spiritual journey. How may I assist you today?
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="input-area">
+                <form id="messageForm" class="input-form">
+                    <input type="text" id="messageInput" 
+                           class="input-field"
+                           placeholder="Ask for wisdom or share your feelings...">
+                    <button type="submit" class="send-button">
+                        Send
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        const messagesDiv = document.getElementById('messages');
+        const messageForm = document.getElementById('messageForm');
+        const messageInput = document.getElementById('messageInput');
+        const typingIndicator = document.createElement('div');
+        typingIndicator.className = 'typing-indicator';
+        typingIndicator.innerHTML = '<span></span><span></span><span></span>';
+
+        // Connect WebSocket
+        function connectWebSocket() {
+            ws = new WebSocket(`ws://${window.location.host}/ws`);
+            
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                if (data.type === 'response') {
+                    typingIndicator.style.display = 'none';
+                    addMessage(data.content, 'bot');
+                }
+            };
+
+            ws.onclose = function() {
+                setTimeout(connectWebSocket, 1000);
+            };
+        }
+
+        // Add message to chat
+        function addMessage(content, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message`;
+            
+            // Check if the message contains a quote (starts with "O")
+            if (content.includes("O ") && content.includes("!")) {
+                const quoteDiv = document.createElement('div');
+                quoteDiv.className = 'quote';
+                quoteDiv.textContent = content;
+                messageDiv.appendChild(quoteDiv);
+            } else {
+                messageDiv.textContent = content;
+            }
+            
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // Handle form submission
+        messageForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const message = messageInput.value.trim();
+            if (message) {
+                addMessage(message, 'user');
+                ws.send(message);
+                messageInput.value = '';
+                typingIndicator.style.display = 'block';
+                messagesDiv.appendChild(typingIndicator);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
+        });
+
+        // Initial WebSocket connection
+        connectWebSocket();
+    </script>
+</body>
+</html> 
