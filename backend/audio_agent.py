@@ -38,4 +38,4 @@ def main():
             print(f"[Error] {e}")
 
 if __name__ == "__main__":
-    main() 
+    main()

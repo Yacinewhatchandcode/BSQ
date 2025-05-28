@@ -127,4 +127,4 @@ def run_agents():
 
 if __name__ == "__main__":
     print("Running MCP multi-agent simulation with real TTS...")
-    run_agents() 
+    run_agents()

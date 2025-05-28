@@ -331,4 +331,4 @@ def main():
             console.print(f"[red]Error:[/red] {str(e)}")
 
 if __name__ == "__main__":
-    main() 
+    main()
