@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quote Readability Demo - Baha'i Hidden Words</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            padding: 20px;
+            margin: 0;
+        }
+        
+        .demo-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: rgba(15, 25, 40, 0.9);
+            padding: 40px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .title {
+            color: #D4AF37;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+        
+        .before-after {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 30px 0;
+        }
+        
+        .section {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .section h3 {
+            color: #D4AF37;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .old-quote {
+            background: rgba(150, 50, 50, 0.1);
+            padding: 15px;
+            border-left: 3px solid #963232;
+            margin: 10px 0;
+            font-style: italic;
+        }
+        
+        .new-quote {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.08), rgba(212, 175, 55, 0.15));
+            border-left: 3px solid #D4AF37;
+            border-radius: 0 20px 20px 0;
+            padding: 25px 30px;
+            margin: 25px 0;
+            font-family: 'Georgia', serif;
+            font-size: 1.2em;
+            font-style: italic;
+            color: #F5E6C8;
+            position: relative;
+            line-height: 1.6;
+            letter-spacing: 0.3px;
+            box-shadow: 0 8px 25px rgba(212, 175, 55, 0.15);
+        }
+        
+        .new-quote::before {
+            content: '"';
+            position: absolute;
+            top: 10px;
+            left: 15px;
+            font-size: 3em;
+            color: rgba(212, 175, 55, 0.3);
+            font-family: 'Times', serif;
+            line-height: 1;
+        }
+        
+        .attribution {
+            display: block;
+            text-align: right;
+            margin-top: 15px;
+            font-size: 0.9em;
+            color: #D4AF37;
+            font-style: normal;
+            letter-spacing: 1px;
+            opacity: 0.9;
+        }
+        
+        .features {
+            background: rgba(0, 100, 0, 0.1);
+            border: 1px solid rgba(0, 255, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 30px 0;
+        }
+        
+        .features h3 {
+            color: #4CAF50;
+            margin-bottom: 15px;
+        }
+        
+        .features ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        
+        .features li {
+            margin: 10px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+        
+        .features li::before {
+            content: "✨";
+            position: absolute;
+            left: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <h1 class="title">🌟 Quote Readability Enhancements</h1>
+        
+        <div class="before-after">
+            <div class="section">
+                <h3>❌ Before (Old Design)</h3>
+                <div class="old-quote">
+                    "O Son of Being! Love Me, that I may love thee. If thou lovest Me not, My love can in no wise reach thee."
+                    <br><small>— Bahá'u'lláh, The Hidden Words</small>
+                </div>
+                <p style="color: #ccc; font-size: 0.9em;">
+                    Basic formatting with minimal visual distinction
+                </p>
+            </div>
+            
+            <div class="section">
+                <h3>✅ After (Enhanced Design)</h3>
+                <div class="new-quote">
+                    O Son of Being! Love Me, that I may love thee. If thou lovest Me not, My love can in no wise reach thee.
+                    <span class="attribution">— Bahá'u'lláh, The Hidden Words</span>
+                </div>
+                <p style="color: #ccc; font-size: 0.9em;">
+                    Beautiful typography with golden gradients and elegant spacing
+                </p>
+            </div>
+        </div>
+        
+        <div class="features">
+            <h3>🎨 Readability Enhancements Active</h3>
+            <ul>
+                <li>**Enhanced quote display** with golden gradient backgrounds</li>
+                <li>**Justified text alignment** for professional reading experience</li>
+                <li>**Improved spacing** between quotes and paragraphs (25px margins)</li>
+                <li>**Beautiful handwriting fonts** (Amiri, Dancing Script, Georgia)</li>
+                <li>**Numbered quote badges** for sequential content presentation</li>
+                <li>**Shimmer animation effects** on quotes for spiritual ambiance</li>
+                <li>**Quotation mark styling** with large decorative opening quotes</li>
+                <li>**Attribution formatting** with elegant right-aligned attribution</li>
+                <li>**Responsive design** that adapts to different screen sizes</li>
+                <li>**Word spacing optimization** (0.1em) for improved readability</li>
+            </ul>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <h3 style="color: #D4AF37;">🌟 Ready for Beautiful Spiritual Reading</h3>
+            <p style="color: #ccc;">
+                The elegant Bahá'í manuscript interface now provides a truly immersive experience<br>
+                for reading The Hidden Words and other spiritual content.
+            </p>
+            <p style="color: #4CAF50; font-weight: bold;">
+                ✅ All quote formatting enhancements are now ACTIVE!
+            </p>
+        </div>
+    </div>
+</body>
+</html>

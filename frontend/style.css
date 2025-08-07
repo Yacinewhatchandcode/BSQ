@@ -1,0 +1,18 @@
+
+/* Additional styles for Vercel deployment */
+body {
+    font-display: swap;
+}
+
+.vercel-deployment {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #D4AF37;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    z-index: 1000;
+}
+        

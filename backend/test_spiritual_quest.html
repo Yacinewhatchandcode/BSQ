@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spiritual Quest Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #5a67d8;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            white-space: pre-wrap;
+        }
+        h1 {
+            color: #333;
+        }
+        h2 {
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <h1>Spiritual Quest UI Test</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Normal Conversation</h2>
+        <button onclick="testNormalChat()">Test Normal Chat</button>
+        <div id="normal-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 2: Spiritual Quote Request</h2>
+        <button onclick="testSpiritualQuote()">Test Quote Request</button>
+        <div id="quote-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 3: Emotional Support</h2>
+        <button onclick="testEmotionalSupport()">Test Emotional Support</button>
+        <div id="emotional-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 4: Multiple Quotes</h2>
+        <button onclick="testMultipleQuotes()">Test Multiple Quotes</button>
+        <div id="multiple-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 5: WebSocket Connection</h2>
+        <button onclick="testWebSocket()">Test WebSocket</button>
+        <div id="ws-result" class="result"></div>
+    </div>
+
+    <script>
+        const baseUrl = 'http://127.0.0.1:8000';
+        
+        async function makeRequest(message) {
+            const response = await fetch(`${baseUrl}/api/chat?agent_id=rag_agent&message=${encodeURIComponent(message)}`, {
+                method: 'POST'
+            });
+            return response.json();
+        }
+        
+        async function testNormalChat() {
+            const result = document.getElementById('normal-result');
+            result.textContent = 'Testing...';
+            try {
+                const data = await makeRequest('Hello, how are you today?');
+                result.textContent = `Response: ${data.response}`;
+            } catch (error) {
+                result.textContent = `Error: ${error.message}`;
+            }
+        }
+        
+        async function testSpiritualQuote() {
+            const result = document.getElementById('quote-result');
+            result.textContent = 'Testing...';
+            try {
+                const data = await makeRequest('Can you share a spiritual quote about peace?');
+                result.textContent = `Response: ${data.response}`;
+            } catch (error) {
+                result.textContent = `Error: ${error.message}`;
+            }
+        }
+        
+        async function testEmotionalSupport() {
+            const result = document.getElementById('emotional-result');
+            result.textContent = 'Testing...';
+            try {
+                const data = await makeRequest('I am feeling anxious about the future');
+                result.textContent = `Response: ${data.response}`;
+            } catch (error) {
+                result.textContent = `Error: ${error.message}`;
+            }
+        }
+        
+        async function testMultipleQuotes() {
+            const result = document.getElementById('multiple-result');
+            result.textContent = 'Testing...';
+            try {
+                const data = await makeRequest('Please share three quotes about wisdom');
+                result.textContent = `Response: ${data.response}`;
+            } catch (error) {
+                result.textContent = `Error: ${error.message}`;
+            }
+        }
+        
+        function testWebSocket() {
+            const result = document.getElementById('ws-result');
+            result.textContent = 'Connecting...';
+            
+            const ws = new WebSocket('ws://localhost:8000/ws');
+            
+            ws.onopen = function() {
+                result.textContent = 'WebSocket connected! Sending test message...';
+                ws.send(JSON.stringify({
+                    type: 'chat',
+                    agent_id: 'rag_agent',
+                    message: 'Hello from WebSocket!'
+                }));
+            };
+            
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                result.textContent = `WebSocket Response: ${JSON.stringify(data, null, 2)}`;
+                ws.close();
+            };
+            
+            ws.onerror = function(error) {
+                result.textContent = `WebSocket Error: ${error}`;
+            };
+            
+            ws.onclose = function() {
+                result.textContent += '\nWebSocket closed.';
+            };
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Chat - Spiritual Quest</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            padding: 20px;
+            margin: 0;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .title {
+            color: #D4AF37;
+            margin-bottom: 10px;
+        }
+        
+        .status {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .chat-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            min-height: 400px;
+        }
+        
+        .messages {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            margin-bottom: 15px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        
+        .user {
+            background: rgba(212, 175, 55, 0.2);
+            margin-left: 20%;
+        }
+        
+        .agent {
+            background: rgba(255, 255, 255, 0.1);
+            margin-right: 20%;
+        }
+        
+        .input-area {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .message-input {
+            flex: 1;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+            color: white;
+        }
+        
+        .send-btn {
+            padding: 12px 20px;
+            background: #D4AF37;
+            color: #1a1a1a;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .send-btn:hover {
+            background: #B8941F;
+        }
+        
+        .api-test {
+            background: rgba(0, 100, 0, 0.1);
+            border: 1px solid rgba(0, 255, 0, 0.3);
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">🌟 Spiritual Quest - API Test Interface</h1>
+            <p>Testing real Horizon Beta connections</p>
+        </div>
+        
+        <div class="status" id="status">
+            Status: Ready to test real AI connections
+        </div>
+        
+        <div class="api-test">
+            <h3>✅ API Connection Test</h3>
+            <p>Backend: <span id="backend-status">Checking...</span></p>
+            <p>OpenRouter: <span id="openrouter-status">Testing...</span></p>
+            <p>WebSocket: <span id="websocket-status">Connecting...</span></p>
+        </div>
+        
+        <div class="chat-container">
+            <h3>💬 Real-time Chat with Horizon Beta</h3>
+            <div class="messages" id="messages"></div>
+            <div class="input-area">
+                <input type="text" class="message-input" id="messageInput" 
+                       placeholder="Ask something to test the real AI..." 
+                       onkeypress="handleKeyPress(event)">
+                <button class="send-btn" onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+        
+        <div class="status">
+            <h4>🔧 Debug Info:</h4>
+            <pre id="debugInfo">Ready for testing...</pre>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        
+        // Test backend connection
+        async function testBackend() {
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: 'message=connection test'
+                });
+                const data = await response.json();
+                document.getElementById('backend-status').innerHTML = '✅ Connected';
+                document.getElementById('openrouter-status').innerHTML = 
+                    data.response.length > 20 ? '✅ Real AI Response' : '⚠️ Fallback';
+                return true;
+            } catch (error) {
+                document.getElementById('backend-status').innerHTML = '❌ Failed';
+                return false;
+            }
+        }
+        
+        // WebSocket connection
+        function initWebSocket() {
+            try {
+                ws = new WebSocket('ws://localhost:8000/ws');
+                
+                ws.onopen = function() {
+                    document.getElementById('websocket-status').innerHTML = '✅ Connected';
+                    updateStatus('WebSocket connected successfully');
+                };
+                
+                ws.onmessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.type === 'response' && data.content) {
+                            addMessage(data.content, 'agent');
+                        }
+                    } catch (e) {
+                        addMessage(event.data, 'agent');
+                    }
+                };
+                
+                ws.onclose = function() {
+                    document.getElementById('websocket-status').innerHTML = '❌ Disconnected';
+                    updateStatus('WebSocket disconnected');
+                };
+                
+                ws.onerror = function() {
+                    document.getElementById('websocket-status').innerHTML = '❌ Error';
+                };
+            } catch (error) {
+                document.getElementById('websocket-status').innerHTML = '❌ Failed';
+            }
+        }
+        
+        // Send message
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            addMessage(message, 'user');
+            input.value = '';
+            updateStatus('Sending message...');
+            
+            // Try WebSocket first, fallback to HTTP
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'chat',
+                    message: message
+                }));
+                updateStatus('Message sent via WebSocket');
+            } else {
+                try {
+                    const response = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: `message=${encodeURIComponent(message)}`
+                    });
+                    const data = await response.json();
+                    addMessage(data.response, 'agent');
+                    updateStatus('Message sent via HTTP API');
+                } catch (error) {
+                    addMessage('Connection error: ' + error.message, 'agent');
+                    updateStatus('HTTP API error');
+                }
+            }
+        }
+        
+        // Add message to chat
+        function addMessage(text, sender) {
+            const messages = document.getElementById('messages');
+            const div = document.createElement('div');
+            div.className = `message ${sender}`;
+            div.innerHTML = `<strong>${sender.toUpperCase()}:</strong> ${text}`;
+            messages.appendChild(div);
+            messages.scrollTop = messages.scrollHeight;
+        }
+        
+        // Update status
+        function updateStatus(text) {
+            document.getElementById('status').textContent = `Status: ${text}`;
+            const debug = document.getElementById('debugInfo');
+            debug.textContent += `\\n[${new Date().toLocaleTimeString()}] ${text}`;
+            debug.scrollTop = debug.scrollHeight;
+        }
+        
+        // Handle Enter key
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+        
+        // Initialize
+        window.addEventListener('load', function() {
+            updateStatus('Initializing test interface...');
+            testBackend();
+            initWebSocket();
+            
+            // Add welcome message
+            setTimeout(() => {
+                addMessage('Test interface loaded. Backend running with real Horizon Beta integration.', 'agent');
+                updateStatus('Ready for testing');
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

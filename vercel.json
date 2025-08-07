@@ -1,0 +1,37 @@
+{
+  "version": 2,
+  "name": "bahai-spiritual-quest",
+  "builds": [
+    {
+      "src": "backend/main.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "frontend/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "backend/main.py"
+    },
+    {
+      "src": "/ws",
+      "dest": "backend/main.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "frontend/$1"
+    }
+  ],
+  "env": {
+    "OPENROUTER_API_KEY": "@openrouter_api_key",
+    "PYTHON_PATH": "backend"
+  },
+  "functions": {
+    "backend/main.py": {
+      "runtime": "python3.9"
+    }
+  }
+}

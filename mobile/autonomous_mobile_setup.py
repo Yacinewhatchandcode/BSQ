@@ -1,4 +1,53 @@
-import React, { useState, useEffect } from 'react';
+#!/usr/bin/env python3
+"""
+📱 BAHA'I MOBILE AUTONOMOUS SETUP
+Auto-configures React Native/Expo mobile app for the Baha'i Spiritual Quest
+"""
+
+import os
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+def create_mobile_app():
+    """Create Expo mobile app with Baha'i theme"""
+    
+    mobile_dir = Path(__file__).parent
+    
+    # Create package.json for Expo app
+    package_json = {
+        "name": "bahai-spiritual-quest",
+        "version": "1.0.0",
+        "main": "node_modules/expo/AppEntry.js",
+        "scripts": {
+            "start": "expo start",
+            "android": "expo start --android", 
+            "ios": "expo start --ios",
+            "web": "expo start --web"
+        },
+        "dependencies": {
+            "expo": "~49.0.0",
+            "react": "18.2.0",
+            "react-native": "0.72.6",
+            "react-native-web": "~0.19.6",
+            "expo-status-bar": "~1.6.0",
+            "expo-font": "~11.4.0",
+            "expo-linear-gradient": "~12.3.0",
+            "expo-av": "~13.4.0",
+            "react-native-paper": "^5.10.0",
+            "react-native-vector-icons": "^10.0.0"
+        },
+        "devDependencies": {
+            "@babel/core": "^7.20.0"
+        }
+    }
+    
+    with open(mobile_dir / "package.json", "w") as f:
+        json.dump(package_json, f, indent=2)
+    
+    # Create App.js - Main Baha'i mobile interface
+    app_js = '''import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -29,7 +78,7 @@ export default function App() {
       
       ws.onopen = () => {
         setIsConnected(true);
-        console.log('Connected to Baha\'i backend');
+        console.log('Connected to Baha\\'i backend');
       };
       
       ws.onmessage = (event) => {
@@ -300,4 +349,49 @@ const styles = StyleSheet.create({
     fontSize: 14,
     letterSpacing: 1,
   },
-});
+});'''
+    
+    with open(mobile_dir / "App.js", "w") as f:
+        f.write(app_js)
+    
+    # Create app.json for Expo
+    app_json = {
+        "expo": {
+            "name": "Bahá'í Spiritual Quest",
+            "slug": "bahai-spiritual-quest", 
+            "version": "1.0.0",
+            "orientation": "portrait",
+            "icon": "./assets/icon.png",
+            "userInterfaceStyle": "dark",
+            "splash": {
+                "image": "./assets/splash.png",
+                "resizeMode": "contain",
+                "backgroundColor": "#0B0E1A"
+            },
+            "updates": {
+                "fallbackToCacheTimeout": 0
+            },
+            "assetBundlePatterns": ["**/*"],
+            "ios": {
+                "supportsTablet": True
+            },
+            "android": {
+                "adaptiveIcon": {
+                    "foregroundImage": "./assets/adaptive-icon.png",
+                    "backgroundColor": "#0B0E1A"
+                }
+            },
+            "web": {
+                "favicon": "./assets/favicon.png"
+            }
+        }
+    }
+    
+    with open(mobile_dir / "app.json", "w") as f:
+        json.dump(app_json, f, indent=2)
+    
+    print("📱 Mobile app structure created successfully!")
+    print("🌟 Bahá'í Spiritual Quest mobile app ready for launch")
+
+if __name__ == "__main__":
+    create_mobile_app()

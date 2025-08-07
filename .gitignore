@@ -22,97 +22,64 @@ wheels/
 
 # Virtual Environment
 venv/
+env/
 ENV/
-.env
-.venv
-
-# Logs and outputs
-logs/
-output/
-*.log
-
-# Node.js
-node_modules/
-npm-debug.log
-yarn-error.log
-.next/
+agent-env/
 
 # IDE
-.idea/
 .vscode/
+.idea/
 *.swp
 *.swo
+
+# Logs
+*.log
+logs/
+server*.log
+
+# Config files with secrets
+*config*.json
+*config*.yaml
+spiritual_quest_config.json
+
+# QA and Testing
+qa_screenshots/
+qa_test_report.json
+playwright-report/
+test-results/
+
+# Database
+*.db
+*.sqlite
+chroma_db/
+
+# Node modules (for mobile)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Expo
+.expo/
+.expo-shared/
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Temp files
-*.swp
-*~
+# Vercel
+.vercel
 
-# Model files
-*.bin
-*.pth
-*.h5
-*.hdf5
-*.pt
-*.pkl
-*.joblib
-
-# Large data files
-*.npy
-*.npz
-*.csv
-*.jsonl
-*.db
-*.sqlite3
-
-# Environment variables
+# Environment
 .env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Build directories
-build/
-dist/
-*.egg-info/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# Local development
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-
-# Coverage reports
-htmlcov/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
-
-# Debug logs
-*.log
-
-# Local development
-.env.development
-.env.test
 .env.production
 
-# Editor directories and files
-.idea
-.vscode
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+# Audio files
+*.wav
+*.mp3
+*.m4a
+
+# Temporary files
+tmp/
+temp/

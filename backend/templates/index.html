@@ -3,103 +3,492 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spiritual Quest</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link href="/static/style.css" rel="stylesheet">
+    <title>Multi-Agent System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 0;
+            min-height: 600px;
+        }
+        
+        .sidebar {
+            background: #f8f9fa;
+            padding: 30px;
+            border-right: 1px solid #e9ecef;
+        }
+        
+        .agent-list {
+            margin-bottom: 30px;
+        }
+        
+        .agent-list h3 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .agent-item {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .agent-item:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .agent-item.active {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        
+        .agent-name {
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+        
+        .agent-role {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        
+        .chat-area {
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            height: 600px;
+        }
+        
+        .chat-header {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        .chat-header h3 {
+            color: #495057;
+            font-size: 1.5em;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            max-height: 400px;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            max-width: 80%;
+        }
+        
+        .message.user {
+            background: #667eea;
+            color: white;
+            margin-left: auto;
+        }
+        
+        .message.agent {
+            background: white;
+            border: 1px solid #e9ecef;
+            color: #495057;
+        }
+        
+        .message-header {
+            font-size: 0.8em;
+            margin-bottom: 5px;
+            opacity: 0.7;
+        }
+        
+        .chat-input {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .chat-input input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 1em;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+        
+        .chat-input input:focus {
+            border-color: #667eea;
+        }
+        
+        .chat-input button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: transform 0.3s ease;
+        }
+        
+        .chat-input button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .workflow-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #e9ecef;
+        }
+        
+        .workflow-section h3 {
+            color: #495057;
+            margin-bottom: 15px;
+        }
+        
+        .workflow-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .workflow-btn {
+            padding: 10px 20px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+        
+        .workflow-btn:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+        
+        .status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border-radius: 25px;
+            color: white;
+            font-weight: bold;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .status.success {
+            background: #28a745;
+        }
+        
+        .status.error {
+            background: #dc3545;
+        }
+        
+        .status.show {
+            opacity: 1;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
         <div class="header">
-            <h1>Spiritual Quest</h1>
-            <p>Your journey to spiritual wisdom begins here</p>
+            <h1>🤖 Multi-Agent System</h1>
+            <p>Powered by Horizon Beta via OpenRouter</p>
         </div>
-
-        <!-- Chat Interface -->
-        <div class="chat-container">
-            <!-- Messages Container -->
-            <div id="messages" class="messages">
-                <div class="message bot-message">
-                    Welcome to your spiritual journey. How may I assist you today?
+        
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="agent-list">
+                    <h3>Available Agents</h3>
+                    <div class="agent-item" data-agent="mobile_expert">
+                        <div class="agent-name">📱 Mobile Expert</div>
+                        <div class="agent-role">Mobile UI Specialist</div>
+                    </div>
+                    <div class="agent-item" data-agent="backend_engineer">
+                        <div class="agent-name">🔧 Backend Engineer</div>
+                        <div class="agent-role">API Validator</div>
+                    </div>
+                    <div class="agent-item" data-agent="audio_handler">
+                        <div class="agent-name">🎵 Audio Handler</div>
+                        <div class="agent-role">TTS Specialist</div>
+                    </div>
+                    <div class="agent-item" data-agent="rag_agent">
+                        <div class="agent-name">📚 RAG Agent</div>
+                        <div class="agent-role">Knowledge Base Specialist</div>
+                    </div>
+                    <div class="agent-item" data-agent="coordinator">
+                        <div class="agent-name">🎯 Coordinator</div>
+                        <div class="agent-role">System Coordinator</div>
+                    </div>
+                </div>
+                
+                <div class="workflow-section">
+                    <h3>Quick Workflows</h3>
+                    <div class="workflow-buttons">
+                        <button class="workflow-btn" onclick="runTTSSWorkflow()">🎵 TTS Workflow</button>
+                        <button class="workflow-btn" onclick="runKnowledgeWorkflow()">📚 Knowledge Workflow</button>
+                    </div>
                 </div>
             </div>
-
-            <!-- Input Area -->
-            <div class="input-area">
-                <form id="messageForm" class="input-form">
-                    <input type="text" id="messageInput" 
-                           class="input-field"
-                           placeholder="Ask for wisdom or share your feelings...">
-                    <button type="submit" class="send-button">
-                        Send
-                    </button>
-                </form>
+            
+            <div class="chat-area">
+                <div class="chat-header">
+                    <h3>Chat with <span id="selected-agent">an Agent</span></h3>
+                </div>
+                
+                <div class="chat-messages" id="chat-messages">
+                    <div class="message agent">
+                        <div class="message-header">System</div>
+                        <div>Welcome to the Multi-Agent System! Select an agent from the sidebar to start chatting.</div>
+                    </div>
+                </div>
+                
+                <div class="chat-input">
+                    <input type="text" id="message-input" placeholder="Type your message..." onkeypress="handleKeyPress(event)">
+                    <button onclick="sendMessage()">Send</button>
+                </div>
             </div>
         </div>
     </div>
-
+    
+    <div class="status" id="status"></div>
+    
     <script>
+        let selectedAgent = null;
         let ws = null;
-        const messagesDiv = document.getElementById('messages');
-        const messageForm = document.getElementById('messageForm');
-        const messageInput = document.getElementById('messageInput');
-        const typingIndicator = document.createElement('div');
-        typingIndicator.className = 'typing-indicator';
-        typingIndicator.innerHTML = '<span></span><span></span><span></span>';
-
-        // Connect WebSocket
-        function connectWebSocket() {
-            ws = new WebSocket(`ws://${window.location.host}/ws`);
+        
+        // Initialize WebSocket connection
+        function initWebSocket() {
+            ws = new WebSocket('ws://localhost:8000/ws');
+            
+            ws.onopen = function() {
+                console.log('WebSocket connected');
+                showStatus('Connected to server', 'success');
+            };
             
             ws.onmessage = function(event) {
                 const data = JSON.parse(event.data);
                 if (data.type === 'response') {
-                    typingIndicator.style.display = 'none';
-                    addMessage(data.content, 'bot');
+                    addMessage(data.response, 'agent', data.agent_id);
                 }
             };
-
+            
             ws.onclose = function() {
-                setTimeout(connectWebSocket, 1000);
+                console.log('WebSocket disconnected');
+                showStatus('Disconnected from server', 'error');
+                // Try to reconnect after 5 seconds
+                setTimeout(initWebSocket, 5000);
             };
         }
-
-        // Add message to chat
-        function addMessage(content, sender) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${sender}-message`;
+        
+        // Agent selection
+        document.querySelectorAll('.agent-item').forEach(item => {
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.agent-item').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+                
+                selectedAgent = this.dataset.agent;
+                document.getElementById('selected-agent').textContent = this.querySelector('.agent-name').textContent;
+                
+                addMessage(`Now chatting with ${this.querySelector('.agent-name').textContent}`, 'agent', 'system');
+            });
+        });
+        
+        // Send message
+        function sendMessage() {
+            const input = document.getElementById('message-input');
+            const message = input.value.trim();
             
-            // Check if the message contains a quote (starts with "O")
-            if (content.includes("O ") && content.includes("!")) {
-                const quoteDiv = document.createElement('div');
-                quoteDiv.className = 'quote';
-                quoteDiv.textContent = content;
-                messageDiv.appendChild(quoteDiv);
-            } else {
-                messageDiv.textContent = content;
+            if (!message) return;
+            
+            if (!selectedAgent) {
+                showStatus('Please select an agent first', 'error');
+                return;
             }
             
+            addMessage(message, 'user');
+            input.value = '';
+            
+            // Send via WebSocket if available
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'chat',
+                    agent_id: selectedAgent,
+                    message: message
+                }));
+            } else {
+                // Fallback to HTTP API
+                sendMessageHTTP(selectedAgent, message);
+            }
+        }
+        
+        // HTTP fallback for sending messages
+        async function sendMessageHTTP(agentId, message) {
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `agent_id=${agentId}&message=${encodeURIComponent(message)}`
+                });
+                
+                const data = await response.json();
+                addMessage(data.response, 'agent', agentId);
+            } catch (error) {
+                console.error('Error sending message:', error);
+                addMessage('Error: Could not send message', 'agent', 'system');
+            }
+        }
+        
+        // Add message to chat
+        function addMessage(text, sender, agentId = null) {
+            const messagesDiv = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            
+            const header = document.createElement('div');
+            header.className = 'message-header';
+            header.textContent = sender === 'user' ? 'You' : (agentId || 'Agent');
+            
+            const content = document.createElement('div');
+            content.textContent = text;
+            
+            messageDiv.appendChild(header);
+            messageDiv.appendChild(content);
             messagesDiv.appendChild(messageDiv);
+            
+            // Scroll to bottom
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
-
-        // Handle form submission
-        messageForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const message = messageInput.value.trim();
-            if (message) {
-                addMessage(message, 'user');
-                ws.send(message);
-                messageInput.value = '';
-                typingIndicator.style.display = 'block';
-                messagesDiv.appendChild(typingIndicator);
-                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        
+        // Handle Enter key
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
             }
+        }
+        
+        // Show status message
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.classList.add('show');
+            
+            setTimeout(() => {
+                status.classList.remove('show');
+            }, 3000);
+        }
+        
+        // TTS Workflow
+        async function runTTSSWorkflow() {
+            const text = prompt('Enter text for TTS workflow:');
+            if (!text) return;
+            
+            try {
+                const response = await fetch('/api/workflow/tts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `text=${encodeURIComponent(text)}`
+                });
+                
+                const data = await response.json();
+                addMessage(`TTS Workflow completed for: "${text}"`, 'agent', 'system');
+                addMessage(JSON.stringify(data.steps, null, 2), 'agent', 'system');
+                showStatus('TTS workflow completed', 'success');
+            } catch (error) {
+                console.error('TTS workflow error:', error);
+                showStatus('TTS workflow failed', 'error');
+            }
+        }
+        
+        // Knowledge Workflow
+        async function runKnowledgeWorkflow() {
+            const query = prompt('Enter search query:');
+            if (!query) return;
+            
+            try {
+                const response = await fetch('/api/workflow/knowledge', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `query=${encodeURIComponent(query)}`
+                });
+                
+                const data = await response.json();
+                addMessage(`Knowledge workflow completed for: "${query}"`, 'agent', 'system');
+                addMessage(JSON.stringify(data.steps, null, 2), 'agent', 'system');
+                showStatus('Knowledge workflow completed', 'success');
+            } catch (error) {
+                console.error('Knowledge workflow error:', error);
+                showStatus('Knowledge workflow failed', 'error');
+            }
+        }
+        
+        // Initialize WebSocket on page load
+        window.addEventListener('load', function() {
+            initWebSocket();
         });
-
-        // Initial WebSocket connection
-        connectWebSocket();
     </script>
 </body>
 </html> 

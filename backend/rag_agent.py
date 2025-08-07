@@ -1,7 +1,7 @@
 import os
 import json
 from typing import Dict, Any, List
-import ollama
+import requests
 from rich.console import Console
 from rich.panel import Panel
 from rich.markdown import Markdown
@@ -10,17 +10,36 @@ from chromadb.config import Settings
 from sentence_transformers import SentenceTransformer
 import numpy as np
 import re
+import asyncio
+from llm_config import EdgeEncoder, LLMProvider, get_edge_encoder
 
 console = Console()
 
+# OpenRouter Configuration (fallback)
+OPENROUTER_API_KEY = "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"
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+
 class SpiritualGuideAgent:
-    def __init__(self, model_name: str = "qwen3-7b-instruct", text_path: str = "hidden_words_reformatted.txt"):
+    def __init__(self, model_name: str = "hybrid_edge", text_path: str = "hidden_words_reformatted.txt"):
         self.model_name = model_name
         self.conversation_history: List[Dict[str, str]] = []
         self.text_path = text_path
         self.vector_db = None
         self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
         self.user_context = {}  # Store user's emotional state and preferences
+        
+        # Initialize edge encoder system
+        self.edge_encoder = get_edge_encoder()
+        
+        # Set provider based on model_name
+        if model_name == "local_gpt":
+            self.edge_encoder.primary_provider = LLMProvider.LOCAL_GPT
+        elif model_name == "ollama":
+            self.edge_encoder.primary_provider = LLMProvider.OLLAMA
+        elif model_name == "horizon_beta":
+            self.edge_encoder.primary_provider = LLMProvider.OPENROUTER_HORIZON
+        else:  # Default to hybrid edge encoding
+            self.edge_encoder.primary_provider = LLMProvider.HYBRID_EDGE
         
         # Initialize system prompt
         self.system_prompt = """You are a completely normal person having a casual conversation. You know The Hidden Words, but you NEVER mention them or anything spiritual unless explicitly asked.
@@ -186,8 +205,37 @@ Remember: You are a normal person having a normal conversation. The Hidden Words
             return word_to_num.get(num, int(num))
         return 1  # Default to 1 quote if no number specified
     
+    def _call_horizon_beta(self, messages: List[Dict[str, str]]) -> str:
+        """Call Horizon Beta via OpenRouter API"""
+        headers = {
+            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        
+        # Use proper OpenRouter Horizon Beta model name
+        model_name = "openrouter/horizon-beta" if self.model_name == "hybrid_edge" else self.model_name
+        
+        payload = {
+            "model": model_name,
+            "messages": messages,
+            "temperature": 0.7,
+            "max_tokens": 500
+        }
+        
+        try:
+            response = requests.post(OPENROUTER_URL, headers=headers, json=payload)
+            if response.status_code == 200:
+                data = response.json()
+                return data['choices'][0]['message']['content']
+            else:
+                console.print(f"[red]Error calling Horizon Beta:[/red] {response.status_code} - {response.text}")
+                return "I'm having trouble connecting right now. Can you try again?"
+        except Exception as e:
+            console.print(f"[red]Error calling Horizon Beta:[/red] {str(e)}")
+            return "I'm having trouble connecting right now. Can you try again?"
+    
     def chat(self, message: str) -> str:
-        """Process a message and return the agent's response."""
+        """Process a message and return the agent's response using edge encoding."""
         try:
             # Add user message to history
             self.conversation_history.append({"role": "user", "content": message})
@@ -195,39 +243,72 @@ Remember: You are a normal person having a normal conversation. The Hidden Words
             # Check for emotional state
             is_emotional = self._update_user_context(message)
             
-            # Check for explicit requests for quotes
-            quote_triggers = [
-                "quote", "hidden words", "spiritual guidance", 
-                "what does it say", "share wisdom", "teachings",
-                "quotation", "from the hidden words", "spiritual quote",
-                "any quote", "any quotation", "share a quote",
-                "retrieve", "get", "find", "show me"
+            # Use edge encoder for advanced processing
+            context = self._get_conversation_context()
+            
+            # Use asyncio to run the async edge encoder
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                encoding_result = loop.run_until_complete(
+                    self.edge_encoder.encode_query(message, context)
+                )
+                response = encoding_result.get("final_response", "I'm here to help with your spiritual journey.")
+            finally:
+                loop.close()
+            
+            # Add response to history
+            self.conversation_history.append({"role": "assistant", "content": response})
+            
+            return response
+            
+        except Exception as e:
+            console.print(f"[red]Error in chat:[/red] {str(e)}")
+            return self._fallback_response(message)
+    
+    def _get_conversation_context(self) -> str:
+        """Get conversation context for edge encoding"""
+        if len(self.conversation_history) > 1:
+            # Get last few messages for context
+            recent_messages = self.conversation_history[-4:]  # Last 4 messages
+            context = "\n".join([f"{msg['role']}: {msg['content']}" for msg in recent_messages])
+            return context
+        return ""
+    
+    def _fallback_response(self, message: str) -> str:
+        """Fallback response when edge encoding fails"""
+        # Check for explicit requests for quotes
+        quote_triggers = [
+            "quote", "hidden words", "spiritual guidance", 
+            "what does it say", "share wisdom", "teachings",
+            "quotation", "from the hidden words", "spiritual quote",
+            "any quote", "any quotation", "share a quote",
+            "retrieve", "get", "find", "show me"
+        ]
+        
+        # Check for emotional state
+        is_emotional = self._update_user_context(message)
+        
+        # If it's a normal conversation (no emotional state and no quote request)
+        if not any(trigger in message.lower() for trigger in quote_triggers) and not is_emotional:
+            # Get normal conversation response
+            messages = [
+                {"role": "system", "content": "You are a normal, friendly person having a casual conversation. Keep it light and natural."},
+                {"role": "user", "content": message}
             ]
             
-            # If it's a normal conversation (no emotional state and no quote request)
-            if not any(trigger in message.lower() for trigger in quote_triggers) and not is_emotional:
-                # Get normal conversation response
-                messages = [
-                    {"role": "system", "content": "You are a normal, friendly person having a casual conversation. Keep it light and natural."},
-                    {"role": "user", "content": message}
-                ]
-                
-                response = ollama.chat(
-                    model=self.model_name,
-                    messages=messages,
-                    stream=False
-                )
-                
-                # Extract and clean response
-                agent_response = response['message']['content']
-                # Remove any accidental spiritual content
-                agent_response = self._clean_response(agent_response)
-                
-            else:
-                # If emotional state detected or explicitly asked for quotes
-                quote_count = self._extract_quote_count(message)
-                relevant_words = self._retrieve_relevant_words(message, top_k=quote_count)
-                messages = [
+            response = self._call_horizon_beta(messages)
+            
+            # Extract and clean response
+            agent_response = response
+            # Remove any accidental spiritual content
+            agent_response = self._clean_response(agent_response)
+            
+        else:
+            # If emotional state detected or explicitly asked for quotes
+            quote_count = self._extract_quote_count(message)
+            relevant_words = self._retrieve_relevant_words(message, top_k=quote_count)
+            messages = [
                     {"role": "system", "content": f"""You are a spiritual guide sharing wisdom from The Hidden Words.
 When responding to emotional states or quote requests:
 
@@ -250,25 +331,18 @@ In all cases:
 - Return to normal conversation after sharing
 - If multiple quotes are requested, separate them with a blank line"""},
                     {"role": "user", "content": f"Context: {message}\nEmotional state: {self.user_context.get('emotional_state', 'none')}\nRelevant words: {', '.join(relevant_words)}\nPlease provide a natural response with {quote_count} relevant quote(s), ensuring to remove any verse numbers."}
-                ]
-                
-                response = ollama.chat(
-                    model=self.model_name,
-                    messages=messages,
-                    stream=False
-                )
-                
-                agent_response = response['message']['content']
-                # Clean any verse numbers from the quotes
-                agent_response = self._clean_quote(agent_response)
+            ]
             
-            # Add agent response to history
-            self.conversation_history.append({"role": "assistant", "content": agent_response})
+            response = self._call_horizon_beta(messages)
             
-            return agent_response
-            
-        except Exception as e:
-            return f"Error: {str(e)}"
+            agent_response = response
+            # Clean any verse numbers from the quotes
+            agent_response = self._clean_quote(agent_response)
+        
+        # Add agent response to history
+        self.conversation_history.append({"role": "assistant", "content": agent_response})
+        
+        return agent_response
     
     def _clean_response(self, response: str) -> str:
         """Remove any spiritual content or quotes from normal conversation."""

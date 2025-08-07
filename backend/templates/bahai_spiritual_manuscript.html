@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sacred Digital Manuscript - Baha'i Spiritual Quest</title>
+    
+    <!-- Google Fonts for Persian/Arabic calligraphy -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Aref+Ruqaa:wght@400;700&family=Cinzel:wght@400;600&family=Dancing+Script:wght@400;700&family=Noto+Nastaliq+Urdu&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Sacred Manuscript CSS */
+        :root {
+            --gold-divine: #D4AF37;
+            --gold-pure: #FFD700;
+            --gold-light: #F4E19C;
+            --brown-earth: #8B4513;
+            --brown-ink: #2F1B14;
+            --blue-spirit: #4169E1;
+            --blue-light: #87CEEB;
+            --parchment: #F4E8D0;
+            --parchment-dark: #E8D7C3;
+            --shadow-soft: rgba(0, 0, 0, 0.1);
+            --shadow-deep: rgba(0, 0, 0, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Cinzel', serif;
+            background: #1a1a1a;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Animated starfield background */
+        .cosmos-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(ellipse at 25% 25%, #1B2951 0%, transparent 50%),
+                radial-gradient(ellipse at 75% 75%, #2D1B51 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, #0F1620 0%, #000000 100%);
+            z-index: -2;
+        }
+
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: -1;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s ease-in-out infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        /* Main parchment container */
+        .manuscript-container {
+            width: 90%;
+            max-width: 1000px;
+            margin: 40px auto;
+            background: var(--parchment);
+            border-radius: 20px;
+            box-shadow: 
+                0 30px 60px rgba(0, 0, 0, 0.5),
+                inset 0 0 120px rgba(139, 69, 19, 0.2),
+                inset 0 0 40px rgba(212, 175, 55, 0.1);
+            position: relative;
+            overflow: hidden;
+            animation: manuscript-appear 2s ease-out;
+        }
+
+        @keyframes manuscript-appear {
+            from {
+                opacity: 0;
+                transform: scale(0.9) rotateX(10deg);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) rotateX(0);
+            }
+        }
+
+        /* Parchment texture overlay */
+        .manuscript-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(139, 69, 19, 0.03) 10px, rgba(139, 69, 19, 0.03) 20px),
+                repeating-linear-gradient(-45deg, transparent, transparent 15px, rgba(212, 175, 55, 0.02) 15px, rgba(212, 175, 55, 0.02) 30px),
+                radial-gradient(ellipse at 20% 30%, rgba(139, 69, 19, 0.05) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 70%, rgba(212, 175, 55, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        /* Illuminated border */
+        .illuminated-frame {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            bottom: 20px;
+            border: 3px solid transparent;
+            border-image: linear-gradient(45deg, var(--gold-divine), var(--brown-earth), var(--blue-spirit), var(--gold-divine)) 1;
+            border-radius: 15px;
+            pointer-events: none;
+        }
+
+        .illuminated-frame::before,
+        .illuminated-frame::after {
+            content: '';
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            border: 3px solid var(--gold-divine);
+            opacity: 0.6;
+        }
+
+        .illuminated-frame::before {
+            top: -50px;
+            left: -50px;
+            border-right: none;
+            border-bottom: none;
+            border-radius: 15px 0 0 0;
+        }
+
+        .illuminated-frame::after {
+            bottom: -50px;
+            right: -50px;
+            border-left: none;
+            border-top: none;
+            border-radius: 0 0 15px 0;
+        }
+
+        /* Sacred header */
+        .sacred-header {
+            text-align: center;
+            padding: 60px 40px 40px;
+            position: relative;
+        }
+
+        .nine-pointed-star {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 30px;
+            position: relative;
+            filter: drop-shadow(0 0 20px rgba(212, 175, 55, 0.5));
+            animation: rotate-star 60s linear infinite;
+        }
+
+        @keyframes rotate-star {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .nine-pointed-star svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .nine-pointed-star path {
+            fill: none;
+            stroke: var(--gold-divine);
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            filter: url(#glow);
+        }
+
+        .title-container {
+            margin-bottom: 30px;
+        }
+
+        .title-arabic {
+            font-family: 'Aref Ruqaa', serif;
+            font-size: 4em;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--gold-divine), var(--gold-pure), var(--gold-divine));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 2px 10px rgba(212, 175, 55, 0.3);
+            margin-bottom: 10px;
+            animation: glow-text 3s ease-in-out infinite;
+        }
+
+        @keyframes glow-text {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.2); }
+        }
+
+        .subtitle {
+            font-family: 'Dancing Script', cursive;
+            font-size: 1.8em;
+            color: var(--brown-earth);
+            opacity: 0.8;
+        }
+
+        /* Chat area */
+        .manuscript-content {
+            padding: 0 60px 60px;
+            position: relative;
+        }
+
+        .chat-scroll {
+            height: 500px;
+            overflow-y: auto;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.1);
+            scrollbar-width: thin;
+            scrollbar-color: var(--gold-divine) transparent;
+        }
+
+        .chat-scroll::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .chat-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .chat-scroll::-webkit-scrollbar-thumb {
+            background: var(--gold-divine);
+            border-radius: 5px;
+        }
+
+        /* Message styles */
+        .message {
+            margin-bottom: 30px;
+            opacity: 0;
+            animation: message-appear 0.6s ease-out forwards;
+        }
+
+        @keyframes message-appear {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            text-align: right;
+        }
+
+        .message-content {
+            display: inline-block;
+            max-width: 70%;
+            padding: 20px 30px;
+            border-radius: 20px;
+            position: relative;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, var(--blue-spirit), var(--blue-light));
+            color: white;
+            box-shadow: 0 5px 15px rgba(65, 105, 225, 0.3);
+        }
+
+        .message.agent .message-content {
+            background: linear-gradient(135deg, rgba(244, 232, 208, 0.9), rgba(232, 215, 195, 0.9));
+            color: var(--brown-ink);
+            box-shadow: 0 5px 15px var(--shadow-soft);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+        }
+
+        /* Handwritten text effect */
+        .handwritten {
+            font-family: 'Dancing Script', cursive;
+            font-size: 1.4em;
+            font-weight: 700;
+            line-height: 1.6;
+            position: relative;
+            display: inline-block;
+        }
+
+        .handwritten.animating {
+            animation: write-text 2s ease-out forwards;
+        }
+
+        @keyframes write-text {
+            from {
+                clip-path: inset(0 100% 0 0);
+            }
+            to {
+                clip-path: inset(0 0 0 0);
+            }
+        }
+
+        /* Hidden Words quote styling */
+        .hidden-word-quote {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(212, 175, 55, 0.2));
+            border-left: 4px solid var(--gold-divine);
+            border-radius: 0 15px 15px 0;
+            padding: 25px 35px;
+            margin: 20px 0;
+            position: relative;
+            box-shadow: 0 5px 20px rgba(212, 175, 55, 0.2);
+            overflow: hidden;
+        }
+
+        .hidden-word-quote::before {
+            content: '"';
+            position: absolute;
+            top: -20px;
+            left: 10px;
+            font-size: 120px;
+            font-family: 'Amiri', serif;
+            color: var(--gold-divine);
+            opacity: 0.1;
+        }
+
+        .quote-text {
+            font-family: 'Amiri', serif;
+            font-size: 1.6em;
+            font-style: italic;
+            line-height: 1.8;
+            color: var(--brown-ink);
+            position: relative;
+            z-index: 1;
+        }
+
+        .quote-persian {
+            font-family: 'Noto Nastaliq Urdu', 'Amiri', serif;
+            font-size: 1.8em;
+            text-align: right;
+            direction: rtl;
+            margin-bottom: 15px;
+        }
+
+        .quote-source {
+            text-align: right;
+            margin-top: 15px;
+            font-family: 'Cinzel', serif;
+            font-size: 0.9em;
+            color: var(--brown-earth);
+            opacity: 0.8;
+        }
+
+        /* Input area */
+        .input-area {
+            margin-top: 30px;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 20px;
+            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .input-container {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .sacred-input {
+            flex: 1;
+            padding: 15px 25px;
+            border: 2px solid var(--gold-divine);
+            border-radius: 30px;
+            background: var(--parchment);
+            font-family: 'Dancing Script', cursive;
+            font-size: 1.3em;
+            font-weight: 700;
+            color: var(--brown-ink);
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .sacred-input:focus {
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+            border-color: var(--gold-pure);
+        }
+
+        .sacred-button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, var(--gold-divine), var(--gold-pure));
+            color: var(--brown-ink);
+            border: none;
+            border-radius: 30px;
+            font-family: 'Cinzel', serif;
+            font-weight: 600;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3);
+        }
+
+        .sacred-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(212, 175, 55, 0.4);
+        }
+
+        .voice-button {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--brown-earth), var(--brown-ink));
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3em;
+        }
+
+        .voice-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 5px 15px rgba(139, 69, 19, 0.4);
+        }
+
+        .voice-button.recording {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            animation: pulse-record 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse-record {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); }
+            50% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+        }
+
+        /* Dynamic quote background */
+        .quote-revelation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 2s ease;
+            z-index: 10;
+        }
+
+        .quote-revelation.active {
+            opacity: 1;
+        }
+
+        .divine-light {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(255, 215, 0, 0.3) 0%, transparent 70%);
+            animation: divine-pulse 4s ease-in-out infinite;
+        }
+
+        @keyframes divine-pulse {
+            0%, 100% { transform: scale(1); opacity: 0.3; }
+            50% { transform: scale(1.2); opacity: 0.6; }
+        }
+
+        /* Golden particles */
+        .golden-particle {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: var(--gold-pure);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: float-particle 4s ease-out forwards;
+        }
+
+        @keyframes float-particle {
+            0% {
+                opacity: 0;
+                transform: translateY(0) scale(0);
+            }
+            20% {
+                opacity: 1;
+                transform: translateY(-30px) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-150px) scale(0);
+            }
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .manuscript-container {
+                margin: 20px;
+                border-radius: 15px;
+            }
+            
+            .sacred-header {
+                padding: 40px 20px 30px;
+            }
+            
+            .title-arabic {
+                font-size: 2.5em;
+            }
+            
+            .manuscript-content {
+                padding: 0 30px 40px;
+            }
+            
+            .chat-scroll {
+                height: 400px;
+            }
+            
+            .message-content {
+                max-width: 85%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Cosmic background -->
+    <div class="cosmos-bg"></div>
+    <div class="stars" id="stars"></div>
+    
+    <!-- Quote revelation effect -->
+    <div class="quote-revelation" id="quoteRevelation">
+        <div class="divine-light"></div>
+    </div>
+    
+    <!-- Main manuscript container -->
+    <div class="manuscript-container">
+        <div class="illuminated-frame"></div>
+        
+        <!-- Sacred header -->
+        <header class="sacred-header">
+            <div class="nine-pointed-star">
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <filter id="glow">
+                            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                            <feMerge>
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+                    </defs>
+                    <!-- True 9-pointed Baha'i star -->
+                    <g>
+                        <!-- Outer points -->
+                        <path d="M50,5 L52,25 L60,15 L55,30 L70,25 L60,35 L75,45 L55,40 L60,55 L45,50 L50,65 L40,55 L25,60 L35,45 L20,35 L35,30 L15,25 L30,20 L25,10 L40,15 Z" fill="var(--gold-divine)" opacity="0.8"/>
+                        <!-- Inner triangle for proper 9-pointed structure -->
+                        <path d="M50,25 L42,45 L58,45 Z" fill="var(--gold-divine)" opacity="0.6"/>
+                        <!-- Center point -->
+                        <circle cx="50" cy="40" r="3" fill="var(--gold-pure)"/>
+                    </g>
+                </svg>
+            </div>
+            
+            <div class="title-container">
+                <h1 class="title-arabic">کلمات مکنونه</h1>
+                <p class="subtitle">The Hidden Words - Sacred Digital Manuscript</p>
+            </div>
+        </header>
+        
+        <!-- Main content area -->
+        <main class="manuscript-content">
+            <div class="chat-scroll" id="chatScroll">
+                <!-- Welcome message -->
+                <div class="message agent">
+                    <div class="message-content">
+                        <div class="handwritten">
+                            Welcome to this sacred digital space, where the eternal wisdom of The Hidden Words 
+                            illuminates our spiritual journey. I am here to share these divine pearls with you, 
+                            each one a treasure from the ocean of divine knowledge.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Input area -->
+            <div class="input-area">
+                <div class="input-container">
+                    <input type="text" 
+                           class="sacred-input" 
+                           id="messageInput" 
+                           placeholder="Seek wisdom from The Hidden Words..."
+                           onkeypress="handleKeyPress(event)">
+                    <button class="voice-button" id="voiceButton" onclick="toggleVoice()">
+                        🎤
+                    </button>
+                    <button class="sacred-button" onclick="sendMessage()">
+                        Reveal
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        // WebSocket connection
+        let ws = null;
+        let isRecording = false;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        
+        // Sacred quotes with Persian translations
+        const sacredQuotes = [
+            {
+                persian: "ای پسر انسان! محبوب من را دوست دار تا ترا دوست دارم",
+                english: "O Son of Man! Love My creation, that I may love thee.",
+                source: "The Hidden Words, Arabic #5"
+            },
+            {
+                persian: "ای پسر وجود! دست من ترا ساخت",
+                english: "O Son of Being! With the hands of power I made thee.",
+                source: "The Hidden Words, Arabic #3"
+            }
+        ];
+        
+        // Initialize starfield
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            for (let i = 0; i < 200; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.width = Math.random() * 3 + 'px';
+                star.style.height = star.style.width;
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                starsContainer.appendChild(star);
+            }
+        }
+        
+        // Initialize WebSocket
+        function initWebSocket() {
+            ws = new WebSocket('ws://localhost:8000/ws');
+            
+            ws.onopen = function() {
+                console.log('Connected to sacred wisdom');
+            };
+            
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                if (data.type === 'response') {
+                    addMessage(data.response, 'agent');
+                }
+            };
+            
+            ws.onclose = function() {
+                setTimeout(initWebSocket, 5000);
+            };
+        }
+        
+        // Send message
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            addMessage(message, 'user');
+            input.value = '';
+            
+            // Send via WebSocket
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'chat',
+                    message: message
+                }));
+            } else {
+                // Fallback to HTTP
+                sendMessageHTTP(message);
+            }
+        }
+        
+        // HTTP fallback
+        async function sendMessageHTTP(message) {
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `message=${encodeURIComponent(message)}`
+                });
+                
+                const data = await response.json();
+                addMessage(data.response, 'agent');
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+        
+        // Add message to chat
+        function addMessage(text, sender) {
+            const chatScroll = document.getElementById('chatScroll');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            messageDiv.style.animationDelay = '0.1s';
+            
+            const content = document.createElement('div');
+            content.className = 'message-content';
+            
+            // Check if it's a Hidden Words quote
+            if (sender === 'agent' && text.includes('"')) {
+                // Parse and create beautiful quote display
+                const quoteMatch = text.match(/"([^"]+)"/);
+                if (quoteMatch) {
+                    content.innerHTML = createQuoteDisplay(quoteMatch[1], text);
+                    activateQuoteBackground();
+                } else {
+                    content.innerHTML = `<div class="handwritten">${text}</div>`;
+                }
+            } else {
+                content.innerHTML = `<div class="handwritten">${text}</div>`;
+            }
+            
+            messageDiv.appendChild(content);
+            chatScroll.appendChild(messageDiv);
+            
+            // Animate handwriting
+            const handwritten = content.querySelector('.handwritten');
+            if (handwritten) {
+                handwritten.classList.add('animating');
+            }
+            
+            // Scroll to bottom
+            chatScroll.scrollTop = chatScroll.scrollHeight;
+        }
+        
+        // Create beautiful quote display
+        function createQuoteDisplay(quote, fullText) {
+            // Find matching Persian translation
+            const sacredQuote = sacredQuotes.find(q => 
+                q.english.toLowerCase().includes(quote.toLowerCase().substring(0, 20))
+            );
+            
+            let html = '<div class="hidden-word-quote">';
+            
+            if (sacredQuote) {
+                html += `<div class="quote-persian">${sacredQuote.persian}</div>`;
+            }
+            
+            html += `<div class="quote-text">${quote}</div>`;
+            
+            // Extract source
+            const sourceMatch = fullText.match(/—\s*(.+)$/);
+            if (sourceMatch) {
+                html += `<div class="quote-source">— ${sourceMatch[1]}</div>`;
+            }
+            
+            html += '</div>';
+            
+            // Add any remaining text
+            const remainingText = fullText.replace(/"[^"]+"/, '').replace(/—.+$/, '').trim();
+            if (remainingText) {
+                html = `<div class="handwritten">${remainingText}</div>` + html;
+            }
+            
+            return html;
+        }
+        
+        // Activate quote background effect
+        function activateQuoteBackground() {
+            const revelation = document.getElementById('quoteRevelation');
+            revelation.classList.add('active');
+            
+            // Create golden particles
+            for (let i = 0; i < 30; i++) {
+                setTimeout(() => {
+                    createGoldenParticle();
+                }, i * 100);
+            }
+            
+            // Deactivate after 4 seconds
+            setTimeout(() => {
+                revelation.classList.remove('active');
+            }, 4000);
+        }
+        
+        // Create golden particle effect
+        function createGoldenParticle() {
+            const particle = document.createElement('div');
+            particle.className = 'golden-particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.top = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 0.5 + 's';
+            document.body.appendChild(particle);
+            
+            setTimeout(() => particle.remove(), 4000);
+        }
+        
+        // Voice recording
+        async function toggleVoice() {
+            const button = document.getElementById('voiceButton');
+            
+            if (!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+                    
+                    mediaRecorder.ondataavailable = function(event) {
+                        audioChunks.push(event.data);
+                    };
+                    
+                    mediaRecorder.onstop = function() {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                        sendAudioToServer(audioBlob);
+                        stream.getTracks().forEach(track => track.stop());
+                    };
+                    
+                    mediaRecorder.start();
+                    isRecording = true;
+                    button.classList.add('recording');
+                    button.textContent = '⏹️';
+                } catch (error) {
+                    console.error('Microphone error:', error);
+                }
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                button.classList.remove('recording');
+                button.textContent = '🎤';
+            }
+        }
+        
+        // Send audio to server
+        async function sendAudioToServer(audioBlob) {
+            const formData = new FormData();
+            formData.append('file', audioBlob, 'audio.wav');
+            
+            try {
+                const response = await fetch('/transcribe', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                if (data.text) {
+                    const input = document.getElementById('messageInput');
+                    input.value = data.text;
+                    input.focus();
+                    input.select();
+                }
+            } catch (error) {
+                console.error('Transcription error:', error);
+            }
+        }
+        
+        // Handle Enter key
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+        
+        // Initialize
+        window.addEventListener('load', function() {
+            createStars();
+            initWebSocket();
+        });
+    </script>
+</body>
+</html>

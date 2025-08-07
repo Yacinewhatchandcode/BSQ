@@ -1,33 +1,33 @@
 {
   "expo": {
-    "name": "Spiritual Quest Mobile",
-    "slug": "spiritual-quest-mobile",
+    "name": "Bah\u00e1'\u00ed Spiritual Quest",
+    "slug": "bahai-spiritual-quest",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "userInterfaceStyle": "automatic",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
     "splash": {
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0B0E1A"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
     },
     "assetBundlePatterns": [
       "**/*"
     ],
-    "platforms": ["ios", "android", "web"],
     "ios": {
-      "supportsTablet": true,
-      "infoPlist": {
-        "NSMicrophoneUsageDescription": "This app uses the microphone to allow voice input for chat messages."
-      }
+      "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "permissions": [
-        "android.permission.RECORD_AUDIO"
-      ]
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0B0E1A"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
     }
   }
 }

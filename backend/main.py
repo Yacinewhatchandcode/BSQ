@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, WebSocket, UploadFile, File
+from fastapi import FastAPI, Request, WebSocket, UploadFile, File, Form, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.websockets import WebSocketDisconnect
@@ -8,6 +8,9 @@ from io import BytesIO
 import base64
 import json
 from rag_agent import SpiritualGuideAgent
+from bahai_ux_designer_agent import BahaiUXDesignerAgent
+from bahai_mcp_integration import BahaiMCPIntegration
+from llm_config import get_llm_config, set_primary_provider, LLMProvider
 import asyncio
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,6 +21,7 @@ import requests
 from typing import Optional
 import time
 from pathlib import Path
+from datetime import datetime
 import logging
 
 # Configure logging
@@ -46,8 +50,10 @@ if not os.path.exists(templates_dir):
     os.makedirs(templates_dir, exist_ok=True)
 templates = Jinja2Templates(directory=templates_dir)
 
-# Initialize RAG agent
+# Initialize agents and integrations
 rag_agent = SpiritualGuideAgent()
+ux_designer_agent = BahaiUXDesignerAgent()
+mcp_integration = BahaiMCPIntegration()
 
 # Add CORS middleware
 app.add_middleware(
@@ -62,7 +68,7 @@ app.add_middleware(
 model = whisper.load_model("base")
 
 # WebSocket connection settings
-WEBSOCKET_TIMEOUT = 60  # seconds
+WEBSOCKET_TIMEOUT = 1800  # 30 minutes for spiritual conversations
 KEEPALIVE_INTERVAL = 30  # seconds
 MAX_RETRIES = 3
 RETRY_DELAY = 1  # seconds
@@ -114,11 +120,31 @@ manager = WebSocketManager()
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    logger.debug("Home endpoint called")
+    logger.debug("Home endpoint called - serving elegant Baha'i manuscript")
     try:
-        return templates.TemplateResponse("index.html", {"request": request})
+        return templates.TemplateResponse("elegant_bahai_manuscript.html", {"request": request})
     except Exception as e:
-        logger.error(f"Error rendering template: {str(e)}")
+        logger.error(f"Error rendering elegant manuscript template: {str(e)}")
+        raise
+
+@app.get("/simple", response_class=HTMLResponse)
+async def simple_interface(request: Request):
+    """Serve the simple spiritual quest interface"""
+    logger.debug("Simple interface endpoint called")
+    try:
+        return templates.TemplateResponse("spiritual_quest.html", {"request": request})
+    except Exception as e:
+        logger.error(f"Error rendering simple template: {str(e)}")
+        raise
+
+@app.get("/test", response_class=HTMLResponse)
+async def test_interface(request: Request):
+    """Serve the test chat interface for debugging"""
+    logger.debug("Test interface endpoint called")
+    try:
+        return templates.TemplateResponse("test_chat.html", {"request": request})
+    except Exception as e:
+        logger.error(f"Error rendering test template: {str(e)}")
         raise
 
 @app.get("/qr")
@@ -138,6 +164,110 @@ async def generate_qr():
     
     return {"qr_code": f"data:image/png;base64,{img_str}"}
 
+@app.post("/api/chat")
+async def chat_endpoint(message: str = Form(...)):
+    """API endpoint for chat without WebSocket"""
+    try:
+        response = rag_agent.chat(message)
+        return {
+            "message": message,
+            "response": response,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Chat API error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/design")
+async def design_endpoint(request: str = Form(...), design_type: str = Form(default="interface")):
+    """API endpoint for Baha'i UX Designer Agent"""
+    try:
+        if design_type == "interface":
+            result = ux_designer_agent.design_interface(request)
+        elif design_type == "quote":
+            # Extract quote and author if provided
+            parts = request.split(" - ")
+            quote = parts[0].strip('"')
+            author = parts[1] if len(parts) > 1 else "Bahá'u'lláh"
+            result = ux_designer_agent.design_quote_display(quote, author)
+        else:
+            result = ux_designer_agent.chat(request)
+        
+        return {
+            "request": request,
+            "design_type": design_type,
+            "result": result,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Design API error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/deploy")
+async def deploy_endpoint(design_request: str = Form(...)):
+    """Deploy a Baha'i interface to Vercel using MCP integration"""
+    try:
+        result = mcp_integration.create_and_deploy_interface(design_request)
+        return {
+            "design_request": design_request,
+            "deployment": result,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Deploy API error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/deployments")
+async def list_deployments():
+    """List all deployments"""
+    try:
+        deployments = mcp_integration.list_deployments()
+        return {
+            "deployments": deployments,
+            "count": len(deployments),
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Deployments API error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/llm/providers")
+async def get_llm_providers():
+    """Get available LLM providers"""
+    try:
+        config = get_llm_config()
+        providers = config.get_available_providers()
+        return {
+            "providers": providers,
+            "current_provider": rag_agent.edge_encoder.primary_provider.value,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"LLM providers API error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/llm/set_provider")
+async def set_llm_provider(provider: str = Form(...)):
+    """Set the primary LLM provider"""
+    try:
+        # Convert string to enum
+        provider_enum = LLMProvider(provider)
+        set_primary_provider(provider_enum)
+        
+        # Update the agent's provider too
+        rag_agent.edge_encoder.primary_provider = provider_enum
+        
+        return {
+            "message": f"LLM provider set to {provider}",
+            "provider": provider,
+            "timestamp": datetime.now().isoformat()
+        }
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid provider: {provider}")
+    except Exception as e:
+        logger.error(f"Set LLM provider API error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+  
 @app.post("/transcribe")
 async def transcribe_audio(file: UploadFile = File(...)):
     try:

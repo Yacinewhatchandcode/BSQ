@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Hidden Words - Sacred Digital Manuscript</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Cinzel:wght@300;400;600&family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Cinzel', serif;
+            background: #0B0E1A;
+            min-height: 100vh;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            position: relative;
+            overflow-x: hidden;
+            padding: 40px 20px;
+        }
+
+        /* Starfield background */
+        .starfield {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s ease-in-out infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.8; }
+        }
+
+        /* Main container */
+        .manuscript-container {
+            width: 90%;
+            max-width: 800px;
+            background: rgba(15, 25, 40, 0.9);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 80px 60px 60px;
+            text-align: center;
+            z-index: 10;
+            position: relative;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* Persian title */
+        .title-persian {
+            font-family: 'Amiri', serif;
+            font-size: 4.5em;
+            font-weight: 700;
+            color: #E6D4A3;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+            text-shadow: 0 0 20px rgba(230, 212, 163, 0.3);
+        }
+
+        /* Subtitle */
+        .subtitle {
+            font-family: 'Cinzel', serif;
+            font-size: 0.9em;
+            font-weight: 300;
+            color: #A8A8A8;
+            letter-spacing: 3px;
+            margin-bottom: 60px;
+            text-transform: uppercase;
+        }
+
+        /* Welcome message */
+        .welcome-message {
+            font-family: 'Cinzel', serif;
+            font-size: 1.1em;
+            font-weight: 300;
+            color: #CCCCCC;
+            line-height: 1.8;
+            margin-bottom: 60px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .welcome-message em {
+            font-style: italic;
+            color: #E6D4A3;
+        }
+
+        /* Input container */
+        .input-container {
+            display: flex;
+            align-items: center;
+            max-width: 500px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50px;
+            padding: 8px;
+        }
+
+        .search-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 15px 25px;
+            font-family: 'Cinzel', serif;
+            font-size: 1em;
+            color: #CCCCCC;
+            outline: none;
+        }
+
+        .search-input::placeholder {
+            color: #666666;
+            font-style: italic;
+        }
+
+        .reveal-button {
+            background: linear-gradient(135deg, #D4AF37, #B8941F);
+            color: #1A1A1A;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 40px;
+            font-family: 'Cinzel', serif;
+            font-weight: 600;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .reveal-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(212, 175, 55, 0.3);
+        }
+        
+        .reveal-button:active {
+            transform: translateY(0px);
+            box-shadow: 0 5px 10px rgba(212, 175, 55, 0.2);
+        }
+        
+        .reveal-button.clicked {
+            background: linear-gradient(135deg, #B8941F, #D4AF37);
+            animation: buttonFlash 0.3s ease;
+        }
+        
+        @keyframes buttonFlash {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        /* Voice button */
+        .voice-button {
+            position: absolute;
+            right: 60px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 50px;
+            height: 50px;
+            background: rgba(212, 175, 55, 0.2);
+            border: 1px solid rgba(212, 175, 55, 0.5);
+            border-radius: 50%;
+            color: #D4AF37;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .voice-button:hover {
+            background: rgba(212, 175, 55, 0.3);
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        .voice-button.recording {
+            background: rgba(220, 53, 69, 0.3);
+            border-color: #dc3545;
+            color: #dc3545;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: translateY(-50%) scale(1); }
+            50% { transform: translateY(-50%) scale(1.1); }
+            100% { transform: translateY(-50%) scale(1); }
+        }
+
+        /* Chat area (hidden initially) */
+        .chat-area {
+            display: none;
+            margin-top: 40px;
+            text-align: left;
+        }
+
+        .chat-messages {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .message {
+            margin-bottom: 30px;
+            padding: 20px 25px;
+            border-radius: 15px;
+            animation: fadeIn 0.5s ease-out;
+            line-height: 1.8;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            background: rgba(212, 175, 55, 0.2);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            margin-left: 20%;
+        }
+
+        .message.agent {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .message-content {
+            font-family: 'Cinzel', serif;
+            font-size: 1.15em;
+            color: #E0E0E0;
+            line-height: 1.9;
+            letter-spacing: 0.3px;
+        }
+        
+        .message.agent .message-content {
+            font-family: 'Dancing Script', cursive;
+            font-size: 1.3em;
+            letter-spacing: 0.5px;
+        }
+
+        /* Hidden Words card-style quote styling */
+        .hidden-word-quote {
+            background: linear-gradient(145deg, #D4AF37 0%, #F4E6A1 50%, #D4AF37 100%);
+            border: none;
+            border-radius: 25px;
+            padding: 45px 40px 35px;
+            margin: 40px auto;
+            max-width: 500px;
+            font-family: 'Amiri', serif;
+            font-size: 1.4em;
+            font-style: normal;
+            color: #2D3A4B;
+            position: relative;
+            overflow: hidden;
+            line-height: 1.7;
+            letter-spacing: 0.3px;
+            box-shadow: 
+                0 15px 35px rgba(212, 175, 55, 0.4),
+                0 5px 15px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            text-align: center;
+            transform: perspective(1000px) rotateX(2deg);
+            transition: all 0.3s ease;
+        }
+        
+        .hidden-word-quote:hover {
+            transform: perspective(1000px) rotateX(0deg) translateY(-5px);
+            box-shadow: 
+                0 20px 45px rgba(212, 175, 55, 0.5),
+                0 10px 25px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.4);
+        }
+
+        /* Inner card container */
+        .hidden-word-quote::before {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            right: 15px;
+            bottom: 15px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            z-index: 0;
+        }
+
+        /* Quote content container */
+        .quote-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Persian/Arabic text styling */
+        .quote-arabic {
+            font-family: 'Amiri', serif;
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #1A1A1A;
+            margin-bottom: 15px;
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+            letter-spacing: 1px;
+        }
+
+        /* English opening styling */
+        .quote-opening {
+            font-family: 'Cinzel', serif;
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #1A1A1A;
+            margin-bottom: 20px;
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+            letter-spacing: 0.5px;
+        }
+
+        /* Main quote text */
+        .quote-text {
+            font-family: 'Cinzel', serif;
+            font-size: 1.1em;
+            color: #2D3A4B;
+            line-height: 1.6;
+            letter-spacing: 0.2px;
+            text-shadow: 0 1px 1px rgba(255, 255, 255, 0.3);
+        }
+        
+        .quote-attribution {
+            display: block;
+            text-align: center;
+            margin-top: 25px;
+            font-size: 0.75em;
+            color: #1A1A1A;
+            font-family: 'Cinzel', serif;
+            font-style: normal;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            text-shadow: 0 1px 1px rgba(255, 255, 255, 0.5);
+            opacity: 0.8;
+        }
+
+        /* Card shine effect */
+        .hidden-word-quote::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent 40%, rgba(255, 255, 255, 0.1) 50%, transparent 60%);
+            animation: cardShine 6s ease-in-out infinite;
+            z-index: 0;
+        }
+
+        @keyframes cardShine {
+            0%, 100% { transform: translateX(-200%) translateY(-200%) rotate(45deg); }
+            50% { transform: translateX(200%) translateY(200%) rotate(45deg); }
+        }
+
+        @keyframes shimmer {
+            0%, 100% { transform: rotate(0deg) scale(1); opacity: 0.5; }
+            50% { transform: rotate(180deg) scale(1.1); opacity: 0.8; }
+        }
+        
+        /* Multiple quotes styling */
+        .quote-collection {
+            margin: 25px 0;
+        }
+        
+        .quote-item {
+            margin-bottom: 30px;
+            padding-left: 25px;
+            position: relative;
+        }
+        
+        .quote-number {
+            position: absolute;
+            left: -5px;
+            top: 5px;
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(135deg, #D4AF37, #B8941F);
+            color: #1A1A1A;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Cinzel', serif;
+            font-weight: 600;
+            font-size: 0.9em;
+            box-shadow: 0 3px 10px rgba(212, 175, 55, 0.3);
+        }
+        
+        /* Introductory text styling */
+        .intro-text {
+            font-family: 'Cinzel', serif;
+            font-size: 1.1em;
+            color: #D4AF37;
+            margin-bottom: 20px;
+            font-weight: 300;
+            letter-spacing: 0.5px;
+            line-height: 1.7;
+        }
+        
+        /* Paragraph spacing */
+        .message-content p {
+            margin-bottom: 18px;
+            line-height: 1.8;
+        }
+        
+        .message-content p:last-child {
+            margin-bottom: 0;
+        }
+        
+        /* Mixed content spacing */
+        .hidden-word-quote + p,
+        p + .hidden-word-quote {
+            margin-top: 25px;
+        }
+        
+        .intro-text + .hidden-word-quote {
+            margin-top: 15px;
+        }
+        
+        /* Enhanced text readability */
+        .message-content {
+            word-spacing: 0.1em;
+        }
+        
+        .message.agent .message-content p {
+            text-align: justify;
+            text-justify: inter-word;
+        }
+        
+        /* Beautiful line breaks */
+        .message-content br {
+            line-height: 2.5;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .manuscript-container {
+                padding: 60px 30px;
+                width: 95%;
+            }
+            
+            .title-persian {
+                font-size: 3em;
+            }
+            
+            .welcome-message {
+                font-size: 1em;
+            }
+            
+            .voice-button {
+                right: 30px;
+            }
+        }
+
+        /* Typing indicator */
+        .typing-indicator {
+            padding: 15px 20px;
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 15px;
+            margin: 10px 0;
+            font-family: 'Dancing Script', cursive;
+            color: #D4AF37;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+        
+        /* Status indicator */
+        .status {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            padding: 10px 20px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            color: #CCCCCC;
+            font-size: 0.8em;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .status.show {
+            opacity: 1;
+        }
+
+        .status.success {
+            border-color: #28a745;
+            color: #28a745;
+        }
+
+        .status.error {
+            border-color: #dc3545;
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <!-- Starfield -->
+    <div class="starfield" id="starfield"></div>
+    
+    <!-- Status indicator -->
+    <div class="status" id="status"></div>
+    
+    <!-- Main container -->
+    <div class="manuscript-container">
+        <!-- Voice button -->
+        <button class="voice-button" id="voiceButton" onclick="toggleVoice()">🎤</button>
+        
+        <!-- Persian title -->
+        <h1 class="title-persian">كلمات مخفیه</h1>
+        
+        <!-- Subtitle -->
+        <p class="subtitle">The Hidden Words - Sacred Digital Manuscript</p>
+        
+        <!-- Welcome message -->
+        <div class="welcome-message">
+            Welcome to this sacred digital space, where the eternal wisdom of <em>The Hidden Words</em> illuminates our spiritual journey. I am here to share these divine pearls with you, each one a treasure from the ocean of divine knowledge.
+        </div>
+        
+        <!-- Input container -->
+        <div class="input-container">
+            <input 
+                type="text" 
+                class="search-input" 
+                id="messageInput"
+                placeholder="Seek wisdom from The Hidden Words..."
+                onkeypress="handleKeyPress(event)"
+            >
+            <button class="reveal-button" onclick="sendMessage(); return false;">Reveal</button>
+        </div>
+        
+        <!-- Chat area (initially hidden) -->
+        <div class="chat-area" id="chatArea">
+            <div class="chat-messages" id="chatMessages"></div>
+            <div class="typing-indicator" id="typingIndicator" style="display: none;">
+                <span>🤖 Divine wisdom is being revealed...</span>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Global variables
+        let ws = null;
+        let isRecording = false;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        
+        // Send message function (defined early)
+        async function sendMessage() {
+            console.log('sendMessage called');
+            const input = document.getElementById('messageInput');
+            let message = input.value.trim();
+            
+            console.log('Input value:', message);
+            
+            if (!message) {
+                console.log('No message, prompting for input');
+                message = prompt('Please enter your message:') || 'what is love';
+                input.value = message;
+                if (!message.trim()) return;
+            }
+            
+            console.log('Sending message:', message);
+            
+            // Show chat area if hidden
+            const chatArea = document.getElementById('chatArea');
+            if (chatArea) {
+                chatArea.style.display = 'block';
+            }
+            
+            addMessage(message, 'user');
+            input.value = '';
+            
+            // Show typing indicator
+            showTypingIndicator();
+            
+            // Try WebSocket first, fallback to HTTP
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                console.log('Sending via WebSocket');
+                ws.send(JSON.stringify({
+                    type: 'chat',
+                    message: message
+                }));
+            } else {
+                console.log('Sending via HTTP API');
+                await sendMessageHTTP(message);
+            }
+        }
+        
+        // Make sendMessage globally available
+        window.sendMessage = sendMessage;
+        
+        // Create starfield
+        function createStarfield() {
+            const starfield = document.getElementById('starfield');
+            const starCount = 150;
+            
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.width = Math.random() * 3 + 'px';
+                star.style.height = star.style.width;
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                starfield.appendChild(star);
+            }
+        }
+        
+        
+        // Show/hide typing indicator
+        function showTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            if (indicator) {
+                indicator.style.display = 'block';
+                // Scroll to show the indicator
+                const chatMessages = document.getElementById('chatMessages');
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        }
+        
+        function hideTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            if (indicator) {
+                indicator.style.display = 'none';
+            }
+        }
+        
+        // Add message to chat
+        function addMessage(text, sender) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            
+            const content = document.createElement('div');
+            content.className = 'message-content';
+            
+            // Enhanced formatting for agent responses
+            if (sender === 'agent') {
+                // Check if it contains quotes
+                if (text.includes('"')) {
+                    // Check for single quote with context
+                    const singleQuoteMatch = text.match(/^([^"]*)"([^"]+)"(.*)$/);
+                    if (singleQuoteMatch && !text.match(/\d+\.\s*"/)) {
+                        content.innerHTML = createQuoteDisplay(singleQuoteMatch[2], text);
+                    } else {
+                        // Use enhanced formatting for numbered quotes or complex text
+                        content.innerHTML = formatMessage(text);
+                    }
+                } else {
+                    // Regular text without quotes
+                    content.innerHTML = formatMessage(text);
+                }
+            } else {
+                // User messages remain simple
+                content.textContent = text;
+            }
+            
+            messageDiv.appendChild(content);
+            chatMessages.appendChild(messageDiv);
+            
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // Create beautiful quote display
+        function createQuoteDisplay(quote, fullText) {
+            const remainingText = fullText.replace(/"[^"]+"/, '').replace(/—.+$/, '').trim();
+            const sourceMatch = fullText.match(/—\s*(.+)$/);
+            
+            let html = '';
+            
+            // Add intro text if exists
+            if (remainingText) {
+                html += `<div class="intro-text">${remainingText}</div>`;
+            }
+            
+            // Detect if it's a Hidden Words quote for special formatting
+            const isHiddenWords = quote.toLowerCase().includes('son of') || 
+                                  quote.toLowerCase().includes('o friend') ||
+                                  quote.toLowerCase().includes('o children') ||
+                                  fullText.toLowerCase().includes('hidden words');
+            
+            if (isHiddenWords) {
+                html += createHiddenWordCard(quote, sourceMatch);
+            } else {
+                // Regular quote format
+                html += `<div class="hidden-word-quote">
+                    <div class="quote-content">
+                        <div class="quote-text">${quote}</div>`;
+                
+                if (sourceMatch) {
+                    html += `<span class="quote-attribution">${sourceMatch[1]}</span>`;
+                }
+                
+                html += `</div></div>`;
+            }
+            
+            return html;
+        }
+
+        // Create special Hidden Words card
+        function createHiddenWordCard(quote, sourceMatch) {
+            // Extract opening phrase (O Son of Man, O Friend, etc.)
+            const openingMatch = quote.match(/^(O [^!]+!)(.*)/);
+            let arabicText = '';
+            let opening = '';
+            let mainText = quote;
+            
+            if (openingMatch) {
+                opening = openingMatch[1];
+                mainText = openingMatch[2].trim();
+                
+                // Map common openings to Arabic
+                const arabicMappings = {
+                    'O Son of Man!': 'ابن الانسان',
+                    'O Son of Being!': 'ابن الوجود', 
+                    'O Son of Spirit!': 'ابن الروح',
+                    'O Friend!': 'یا دوست',
+                    'O Children of Men!': 'ای فرزندان آدم'
+                };
+                
+                arabicText = arabicMappings[opening] || 'کلمات مخفیه';
+            }
+            
+            // Handle different sourceMatch formats
+            let attribution = '';
+            if (sourceMatch) {
+                if (Array.isArray(sourceMatch)) {
+                    attribution = sourceMatch[0];
+                } else if (sourceMatch[1]) {
+                    attribution = sourceMatch[1];
+                } else {
+                    attribution = sourceMatch;
+                }
+            }
+            
+            return `<div class="hidden-word-quote">
+                <div class="quote-content">
+                    ${arabicText ? `<div class="quote-arabic">${arabicText}</div>` : ''}
+                    ${opening ? `<div class="quote-opening">${opening}</div>` : ''}
+                    <div class="quote-text">${mainText}</div>
+                    <span class="quote-attribution">${attribution || 'The Hidden Words'}</span>
+                </div>
+            </div>`;
+        }
+        
+        // Enhanced message formatting
+        function formatMessage(text) {
+            // Check for numbered quotes pattern (1. quote 2. quote etc)
+            const numberedQuotes = text.match(/(\d+\.\s*"[^"]+"\s*(?:—[^"\n]+)?)/g);
+            
+            if (numberedQuotes && numberedQuotes.length > 1) {
+                let formattedText = text;
+                let html = '<div class="quote-collection">';
+                
+                numberedQuotes.forEach((item, index) => {
+                    const quoteMatch = item.match(/(\d+)\.\s*"([^"]+)"\s*(?:—\s*([^"\n]+))?/);
+                    if (quoteMatch) {
+                        const itemQuote = quoteMatch[2];
+                        const itemAttribution = quoteMatch[3];
+                        const isHiddenWords = itemQuote.toLowerCase().includes('son of') || 
+                                              itemQuote.toLowerCase().includes('o friend') ||
+                                              itemQuote.toLowerCase().includes('o children');
+                        
+                        if (isHiddenWords) {
+                            html += `
+                                <div class="quote-item">
+                                    <span class="quote-number">${quoteMatch[1]}</span>
+                                    ${createHiddenWordCard(itemQuote, itemAttribution ? [itemAttribution] : null)}
+                                </div>
+                            `;
+                        } else {
+                            html += `
+                                <div class="quote-item">
+                                    <span class="quote-number">${quoteMatch[1]}</span>
+                                    <div class="hidden-word-quote">
+                                        <div class="quote-content">
+                                            <div class="quote-text">${itemQuote}</div>
+                                            ${itemAttribution ? `<span class="quote-attribution">${itemAttribution}</span>` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }
+                });
+                
+                html += '</div>';
+                return html;
+            }
+            
+            // Check for individual Hidden Words quotes in bullet points
+            const bulletQuotes = text.match(/[-•]\s*"([^"]+)"\s*\([^)]+\)/g);
+            if (bulletQuotes && bulletQuotes.length >= 1) {
+                let html = text;
+                bulletQuotes.forEach(bullet => {
+                    const match = bullet.match(/[-•]\s*"([^"]+)"\s*(\([^)]+\))/);
+                    if (match) {
+                        const quote = match[1];
+                        const attribution = match[2];
+                        const isHiddenWords = quote.toLowerCase().includes('son of') || 
+                                              quote.toLowerCase().includes('o friend') ||
+                                              quote.toLowerCase().includes('o children');
+                        
+                        const replacement = isHiddenWords ? 
+                            createHiddenWordCard(quote, [attribution.replace(/[()]/g, '')]) :
+                            `<div class="hidden-word-quote">
+                                <div class="quote-content">
+                                    <div class="quote-text">${quote}</div>
+                                    <span class="quote-attribution">${attribution.replace(/[()]/g, '')}</span>
+                                </div>
+                            </div>`;
+                        html = html.replace(bullet, replacement);
+                    }
+                });
+                return html.split('\n\n').map(para => {
+                    if (para.includes('hidden-word-quote')) {
+                        return para;
+                    }
+                    return `<p>${para}</p>`;
+                }).join('');
+            }
+            
+            // Check for standalone quotes with attribution
+            const standaloneQuotes = text.match(/"([^"]+)"\s*\([^)]+\)/g);
+            if (standaloneQuotes && standaloneQuotes.length >= 1) {
+                let html = text;
+                standaloneQuotes.forEach(quote => {
+                    const match = quote.match(/"([^"]+)"\s*(\([^)]+\))/);
+                    if (match) {
+                        const quoteText = match[1];
+                        const attribution = match[2];
+                        const isHiddenWords = quoteText.toLowerCase().includes('son of') || 
+                                              quoteText.toLowerCase().includes('o friend') ||
+                                              quoteText.toLowerCase().includes('o children');
+                        
+                        const replacement = isHiddenWords ? 
+                            createHiddenWordCard(quoteText, [attribution.replace(/[()]/g, '')]) :
+                            `<div class="hidden-word-quote">
+                                <div class="quote-content">
+                                    <div class="quote-text">${quoteText}</div>
+                                    <span class="quote-attribution">${attribution.replace(/[()]/g, '')}</span>
+                                </div>
+                            </div>`;
+                        html = html.replace(quote, replacement);
+                    }
+                });
+                return html.split('\n\n').map(para => {
+                    if (para.includes('hidden-word-quote')) {
+                        return para;
+                    }
+                    return `<p>${para}</p>`;
+                }).join('');
+            }
+            
+            // For regular text with paragraphs
+            return text.split('\n\n').map(para => {
+                // Check if paragraph contains quotes without parenthetical attribution
+                if (para.includes('"') && !para.includes('(')) {
+                    const quoteMatch = para.match(/"([^"]+)"/);
+                    if (quoteMatch && para.length > 50) {
+                        // This looks like a substantial quote, format it specially
+                        const isHiddenWords = quoteMatch[1].toLowerCase().includes('son of') || 
+                                              quoteMatch[1].toLowerCase().includes('o friend') ||
+                                              quoteMatch[1].toLowerCase().includes('o children');
+                        
+                        if (isHiddenWords) {
+                            return `<div class="intro-text">${para.replace(/"[^"]+"/g, '')}</div>
+                                    ${createHiddenWordCard(quoteMatch[1], null)}`;
+                        } else {
+                            return `<div class="intro-text">${para.replace(/"[^"]+"/g, '')}</div>
+                                    <div class="hidden-word-quote">
+                                        <div class="quote-content">
+                                            <div class="quote-text">${quoteMatch[1]}</div>
+                                        </div>
+                                    </div>`;
+                        }
+                    }
+                }
+                return `<p>${para}</p>`;
+            }).join('');
+        }
+        
+        // Voice recording
+        async function toggleVoice() {
+            const button = document.getElementById('voiceButton');
+            
+            if (!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+                    
+                    mediaRecorder.ondataavailable = function(event) {
+                        audioChunks.push(event.data);
+                    };
+                    
+                    mediaRecorder.onstop = function() {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                        sendAudioToServer(audioBlob);
+                        stream.getTracks().forEach(track => track.stop());
+                    };
+                    
+                    mediaRecorder.start();
+                    isRecording = true;
+                    button.classList.add('recording');
+                    button.textContent = '⏹️';
+                    showStatus('Listening to your sacred words...', 'success');
+                } catch (error) {
+                    console.error('Microphone error:', error);
+                    showStatus('Cannot access microphone', 'error');
+                }
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                button.classList.remove('recording');
+                button.textContent = '🎤';
+                showStatus('Processing your words...', 'success');
+            }
+        }
+        
+        // Send audio to server
+        async function sendAudioToServer(audioBlob) {
+            const formData = new FormData();
+            formData.append('file', audioBlob, 'audio.wav');
+            
+            try {
+                const response = await fetch('/transcribe', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                if (data.text) {
+                    const input = document.getElementById('messageInput');
+                    input.value = data.text;
+                    input.focus();
+                    input.select();
+                    showStatus('Words transcribed successfully', 'success');
+                }
+            } catch (error) {
+                console.error('Transcription error:', error);
+                showStatus('Transcription failed', 'error');
+            }
+        }
+        
+        // Handle Enter key
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+        
+        // Show status message
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.classList.add('show');
+            
+            setTimeout(() => {
+                status.classList.remove('show');
+            }, 3000);
+        }
+        
+        function initWebSocket() {
+            ws = new WebSocket(`wss://${window.location.host}/ws`);
+            
+            ws.onopen = function() {
+                console.log('WebSocket connected');
+                showStatus('Connected to spiritual guidance', 'success');
+            };
+            
+            ws.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'response' && data.content) {
+                        hideTypingIndicator();
+                        addMessage(data.content, 'agent');
+                    } else if (data.type === 'pong') {
+                        // Handle ping-pong
+                        console.log('WebSocket heartbeat');
+                    }
+                } catch (error) {
+                    console.error('WebSocket message error:', error);
+                    // Treat as plain text response
+                    hideTypingIndicator();
+                    addMessage(event.data, 'agent');
+                }
+            };
+            
+            ws.onclose = function() {
+                console.log('WebSocket disconnected');
+                showStatus('Connection lost - reconnecting...', 'error');
+                setTimeout(initWebSocket, 5000);
+            };
+            
+            ws.onerror = function(error) {
+                console.error('WebSocket error:', error);
+                showStatus('Connection error', 'error');
+            };
+        }
+        
+        // HTTP fallback function
+        async function sendMessageHTTP(message) {
+            try {
+                const formData = new FormData();
+                formData.append('message', message);
+                
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                hideTypingIndicator();
+                addMessage(data.response, 'agent');
+            } catch (error) {
+                console.error('HTTP API error:', error);
+                hideTypingIndicator();
+                addMessage('I am here to help with your spiritual journey. Please try again.', 'agent');
+            }
+        }
+
+        // Test function for debugging
+        function testConnection() {
+            console.log('Test function called');
+            addMessage('Test message from user', 'user');
+            showTypingIndicator();
+            setTimeout(() => {
+                hideTypingIndicator();
+                addMessage('Test response from AI system', 'agent');
+            }, 2000);
+        }
+        
+        // Initialize
+        window.addEventListener('load', function() {
+            console.log('Page loaded, initializing...');
+            createStarfield();
+            initWebSocket();
+            
+            // Test that functions are available
+            console.log('sendMessage function:', typeof sendMessage);
+            console.log('addMessage function:', typeof addMessage);
+            
+            // Add a simple test to verify button works
+            const button = document.querySelector('.reveal-button');
+            if (button) {
+                console.log('Button found:', button);
+                // Add event listener as backup
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('Button clicked via event listener');
+                    
+                    // Visual feedback
+                    button.classList.add('clicked');
+                    setTimeout(() => button.classList.remove('clicked'), 300);
+                    
+                    sendMessage();
+                });
+            } else {
+                console.error('Button not found!');
+            }
+        });
+    </script>
+</body>
+</html>
