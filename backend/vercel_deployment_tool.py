@@ -16,7 +16,7 @@ class VercelDeploymentTool:
     def __init__(self):
         self.project_root = Path(__file__).parent.parent
         self.backend_dir = Path(__file__).parent
-        self.github_username = "yacinewatchandcode"
+        self.github_username = "yacinewhatchandcode"
         self.repo_name = "bahai-spiritual-quest"
         self.vercel_project_name = "bahai-spiritual-quest"
         
