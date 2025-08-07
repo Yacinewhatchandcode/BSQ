@@ -1,0 +1,65 @@
+# Vercel ignore - exclude large files and unnecessary items for deployment
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+agent-env/
+
+# Large model files
+*.bin
+*.safetensors
+*.json
+*.msgpack
+*.h5
+*.onnx
+
+# Cache directories
+.cache/
+huggingface/
+transformers_cache/
+
+# Logs
+*.log
+logs/
+server*.log
+
+# Database files
+*.db
+*.sqlite
+chroma_db/
+
+# QA testing files
+qa_screenshots/
+qa_test_report.json
+playwright-report/
+test-results/
+
+# Mobile node modules  
+mobile/node_modules/
+mobile/.expo/
+
+# Large test files
+comprehensive_qa_test.py
+playwright_qa_framework.py
+enhanced_qa_framework.py
+visual_test_engine.py
+
+# Development tools
+autonomous_launcher.py
+goose_style_config.py
+vercel_deployment_tool.py
+
+# Static files that should be in frontend
+backend/static/
+backend/templates/test_*.html
+backend/templates/spiritual_quest.html
+backend/quote_readability_demo.html
+
+# Documentation (keep README.md)
+AUTONOMOUS_SYSTEM_SUMMARY.md
+BUILD_ACTION_PLAN.md
+backend/QA_FRAMEWORK_README.md
+backend/SYSTEM_OVERVIEW.md

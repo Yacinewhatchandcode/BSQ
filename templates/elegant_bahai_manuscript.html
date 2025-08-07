@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Hidden Words - Sacred Digital Manuscript</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Cinzel:wght@300;400;600&family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Cinzel', serif;
+            background: #0B0E1A;
+            min-height: 100vh;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            position: relative;
+            overflow-x: hidden;
+            padding: 40px 20px;
+        }
+
+        /* Starfield background */
+        .starfield {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s ease-in-out infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.8; }
+        }
+
+        /* Main container */
+        .manuscript-container {
+            width: 90%;
+            max-width: 800px;
+            background: rgba(15, 25, 40, 0.9);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 80px 60px 60px;
+            text-align: center;
+            z-index: 10;
+            position: relative;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* Persian title */
+        .title-persian {
+            font-family: 'Amiri', serif;
+            font-size: 4.5em;
+            font-weight: 700;
+            color: #E6D4A3;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+            text-shadow: 0 0 20px rgba(230, 212, 163, 0.3);
+        }
+
+        /* Subtitle */
+        .subtitle {
+            font-family: 'Cinzel', serif;
+            font-size: 0.9em;
+            font-weight: 300;
+            color: #A8A8A8;
+            letter-spacing: 3px;
+            margin-bottom: 60px;
+            text-transform: uppercase;
+        }
+
+        /* Welcome message */
+        .welcome-message {
+            font-family: 'Cinzel', serif;
+            font-size: 1.1em;
+            font-weight: 300;
+            color: #CCCCCC;
+            line-height: 1.8;
+            margin-bottom: 60px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .welcome-message em {
+            font-style: italic;
+            color: #E6D4A3;
+        }
+
+        /* Input container */
+        .input-container {
+            display: flex;
+            align-items: center;
+            max-width: 500px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50px;
+            padding: 8px;
+        }
+
+        .search-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 15px 25px;
+            font-family: 'Cinzel', serif;
+            font-size: 1em;
+            color: #CCCCCC;
+            outline: none;
+        }
+
+        .search-input::placeholder {
+            color: #666666;
+            font-style: italic;
+        }
+
+        .reveal-button {
+            background: linear-gradient(135deg, #D4AF37, #B8941F);
+            color: #1A1A1A;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 40px;
+            font-family: 'Cinzel', serif;
+            font-weight: 600;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .reveal-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(212, 175, 55, 0.3);
+        }
+        
+        .reveal-button:active {
+            transform: translateY(0px);
+            box-shadow: 0 5px 10px rgba(212, 175, 55, 0.2);
+        }
+
+        /* Chat area */
+        .chat-area {
+            display: none;
+            margin-top: 40px;
+            text-align: left;
+        }
+
+        .chat-messages {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .message {
+            margin-bottom: 30px;
+            padding: 20px 25px;
+            border-radius: 15px;
+            animation: fadeIn 0.5s ease-out;
+            line-height: 1.8;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            background: rgba(212, 175, 55, 0.2);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            margin-left: 20%;
+        }
+
+        .message.agent {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .message-content {
+            font-family: 'Cinzel', serif;
+            font-size: 1.15em;
+            color: #E0E0E0;
+            line-height: 1.9;
+            letter-spacing: 0.3px;
+        }
+        
+        .message.agent .message-content {
+            font-family: 'Dancing Script', cursive;
+            font-size: 1.3em;
+            letter-spacing: 0.5px;
+        }
+
+        /* Golden card quote styling */
+        .hidden-word-quote {
+            background: linear-gradient(145deg, #D4AF37 0%, #F4E6A1 50%, #D4AF37 100%);
+            border: none;
+            border-radius: 25px;
+            padding: 45px 40px 35px;
+            margin: 40px auto;
+            max-width: 500px;
+            font-family: 'Amiri', serif;
+            font-size: 1.4em;
+            font-style: normal;
+            color: #2D3A4B;
+            position: relative;
+            overflow: hidden;
+            line-height: 1.7;
+            letter-spacing: 0.3px;
+            box-shadow: 
+                0 15px 35px rgba(212, 175, 55, 0.4),
+                0 5px 15px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            text-align: center;
+            transform: perspective(1000px) rotateX(2deg);
+            transition: all 0.3s ease;
+        }
+        
+        .hidden-word-quote:hover {
+            transform: perspective(1000px) rotateX(0deg) translateY(-5px);
+            box-shadow: 
+                0 20px 45px rgba(212, 175, 55, 0.5),
+                0 10px 25px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.4);
+        }
+
+        .hidden-word-quote::before {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            right: 15px;
+            bottom: 15px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            z-index: 0;
+        }
+
+        .quote-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Status indicator */
+        .status {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            padding: 10px 20px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            color: #CCCCCC;
+            font-size: 0.8em;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .status.show {
+            opacity: 1;
+        }
+
+        .status.success {
+            border-color: #28a745;
+            color: #28a745;
+        }
+
+        .status.error {
+            border-color: #dc3545;
+            color: #dc3545;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .manuscript-container {
+                padding: 60px 30px;
+                width: 95%;
+            }
+            
+            .title-persian {
+                font-size: 3em;
+            }
+            
+            .welcome-message {
+                font-size: 1em;
+            }
+        }
+
+        /* Vercel badge */
+        .vercel-badge {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #D4AF37;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <!-- Starfield -->
+    <div class="starfield" id="starfield"></div>
+    
+    <!-- Status indicator -->
+    <div class="status" id="status"></div>
+    
+    <!-- Vercel deployment badge -->
+    <div class="vercel-badge">🚀 Deployed on Vercel</div>
+    
+    <!-- Main container -->
+    <div class="manuscript-container">
+        <!-- Persian title -->
+        <h1 class="title-persian">كلمات مخفیه</h1>
+        
+        <!-- Subtitle -->
+        <p class="subtitle">The Hidden Words - Sacred Digital Manuscript</p>
+        
+        <!-- Welcome message -->
+        <div class="welcome-message">
+            Welcome to this sacred digital space, where the eternal wisdom of <em>The Hidden Words</em> illuminates our spiritual journey. I am here to share these divine pearls with you, each one a treasure from the ocean of divine knowledge.
+        </div>
+        
+        <!-- Input container -->
+        <div class="input-container">
+            <input 
+                type="text" 
+                class="search-input" 
+                id="messageInput"
+                placeholder="Seek wisdom from The Hidden Words..."
+                onkeypress="handleKeyPress(event)"
+            >
+            <button class="reveal-button" onclick="sendMessage()">Reveal</button>
+        </div>
+        
+        <!-- Chat area -->
+        <div class="chat-area" id="chatArea">
+            <div class="chat-messages" id="chatMessages"></div>
+        </div>
+    </div>
+    
+    <script>
+        // Create starfield
+        function createStarfield() {
+            const starfield = document.getElementById('starfield');
+            const starCount = 150;
+            
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.width = Math.random() * 3 + 'px';
+                star.style.height = star.style.width;
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                starfield.appendChild(star);
+            }
+        }
+        
+        // Send message function
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) {
+                showStatus('Please enter your spiritual inquiry', 'error');
+                return;
+            }
+            
+            // Show chat area if hidden
+            const chatArea = document.getElementById('chatArea');
+            chatArea.style.display = 'block';
+            
+            addMessage(message, 'user');
+            input.value = '';
+            
+            showStatus('Seeking divine wisdom...', 'success');
+            
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `message=${encodeURIComponent(message)}`
+                });
+                
+                const data = await response.json();
+                
+                // Check if response is a Hidden Word quote
+                if (data.response.includes('O Son of') || data.response.includes('O Friend') || data.response.includes('O Children')) {
+                    addHiddenWordMessage(data.response, 'agent');
+                } else {
+                    addMessage(data.response, 'agent');
+                }
+                
+                showStatus('Divine wisdom revealed', 'success');
+                
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage('The divine connection is momentarily clouded. Please try again.', 'agent');
+                showStatus('Connection error', 'error');
+            }
+        }
+        
+        // Add regular message
+        function addMessage(text, sender) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            
+            const content = document.createElement('div');
+            content.className = 'message-content';
+            content.textContent = text;
+            
+            messageDiv.appendChild(content);
+            chatMessages.appendChild(messageDiv);
+            
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // Add Hidden Word message with golden card styling
+        function addHiddenWordMessage(text, sender) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            
+            const content = document.createElement('div');
+            content.className = 'message-content';
+            
+            // Create golden card for Hidden Words
+            const card = document.createElement('div');
+            card.className = 'hidden-word-quote';
+            card.innerHTML = `<div class="quote-content">${text}</div>`;
+            
+            content.appendChild(card);
+            messageDiv.appendChild(content);
+            chatMessages.appendChild(messageDiv);
+            
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // Handle Enter key
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+        
+        // Show status message
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.classList.add('show');
+            
+            setTimeout(() => {
+                status.classList.remove('show');
+            }, 3000);
+        }
+        
+        // Initialize
+        window.addEventListener('load', function() {
+            createStarfield();
+            console.log('🌟 Bahá\'í Spiritual Quest loaded successfully');
+            console.log('✨ Ready to explore The Hidden Words');
+        });
+    </script>
+</body>
+</html>
