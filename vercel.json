@@ -4,10 +4,6 @@
     {
       "src": "api/main.py",
       "use": "@vercel/python"
-    },
-    {
-      "src": "templates/**",
-      "use": "@vercel/static"
     }
   ],
   "routes": [
@@ -17,7 +13,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "templates/elegant_bahai_manuscript.html"
+      "dest": "/index.html"
     }
   ],
   "env": {
