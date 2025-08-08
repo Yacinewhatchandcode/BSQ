@@ -301,7 +301,9 @@
         
         // Initialize WebSocket connection
         function initWebSocket() {
-            ws = new WebSocket('ws://localhost:8000/ws');
+            const wsProto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+            const wsUrl = `${wsProto}://${window.location.host}/ws`;
+            ws = new WebSocket(wsUrl);
             
             ws.onopen = function() {
                 console.log('WebSocket connected');

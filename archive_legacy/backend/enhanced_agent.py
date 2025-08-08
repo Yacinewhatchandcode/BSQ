@@ -16,7 +16,7 @@ class EnhancedAgent:
         self.conversation_history: List[Dict[str, str]] = []
         
         # OpenRouter configuration
-        self.openrouter_api_key = "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"
+        self.openrouter_api_key = os.getenv("OPENROUTER_API_KEY", "")
         self.openrouter_url = "https://openrouter.ai/api/v1/chat/completions"
         
         # Set system prompt based on provider

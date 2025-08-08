@@ -43,7 +43,7 @@ class LLMConfig:
                 "name": "OpenRouter Horizon Beta",
                 "endpoint": "https://openrouter.ai/api/v1/chat/completions",
                 "model": "openrouter/horizon-beta",
-                "api_key": "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",
+                "api_key": os.getenv("OPENROUTER_API_KEY", ""),
                 "available": True,
                 "description": "Cutting-edge Horizon Beta via OpenRouter"
             },
@@ -225,6 +225,8 @@ Using this analysis, provide a thoughtful, spiritually enriching response that d
 """
         
         try:
+            if not config.get("api_key"):
+                raise RuntimeError("OPENROUTER_API_KEY missing")
             response = requests.post(
                 config["endpoint"],
                 headers={
@@ -238,13 +240,12 @@ Using this analysis, provide a thoughtful, spiritually enriching response that d
                 },
                 timeout=30
             )
-            
             result = response.json()
-            return result["choices"][0]["message"]["content"]
-            
+            return result.get("choices", [{}])[0].get("message", {}).get("content", "") or (
+                f"I understand you're asking about {query}. Please try again.")
         except Exception as e:
             logger.error(f"Horizon Beta call failed: {e}")
-            return f"I understand you're asking about {query}. While I'm having trouble accessing my full knowledge right now, I can share that The Hidden Words teaches us about spiritual growth and divine love. Please try your question again."
+            return f"I understand you're asking about {query}. While I'm having trouble accessing my full knowledge right now, please try again."
     
     async def _single_provider_encode(self, query: str, context: str, provider: LLMProvider) -> Dict[str, Any]:
         """Use single provider for encoding and generation"""

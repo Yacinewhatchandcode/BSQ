@@ -2,30 +2,55 @@ import os
 import json
 from typing import Dict, Any, List
 import requests
-from rich.console import Console
-from rich.panel import Panel
-from rich.markdown import Markdown
-import chromadb
-from chromadb.config import Settings
-from sentence_transformers import SentenceTransformer
-import numpy as np
+try:
+    from rich.console import Console
+    from rich.panel import Panel
+    from rich.markdown import Markdown
+except Exception:
+    class Console:
+        def print(self, *args, **kwargs):
+            pass
+    Panel = object
+    Markdown = str
+try:
+    import chromadb
+    from chromadb.config import Settings
+except Exception:
+    chromadb = None
+    class Settings:  # type: ignore
+        def __init__(self, *a, **k):
+            pass
+try:
+    from sentence_transformers import SentenceTransformer
+except Exception:
+    SentenceTransformer = None  # type: ignore
+try:
+    import numpy as np
+except Exception:
+    np = None
 import re
 import asyncio
 from llm_config import EdgeEncoder, LLMProvider, get_edge_encoder
+from pathlib import Path
 
 console = Console()
 
 # OpenRouter Configuration (fallback)
-OPENROUTER_API_KEY = "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"
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 class SpiritualGuideAgent:
     def __init__(self, model_name: str = "hybrid_edge", text_path: str = "hidden_words_reformatted.txt"):
         self.model_name = model_name
         self.conversation_history: List[Dict[str, str]] = []
-        self.text_path = text_path
+        # Resolve text path relative to this file to avoid CWD issues
+        base_dir = Path(__file__).resolve().parent
+        self.text_path = str(base_dir / text_path) if not os.path.isabs(text_path) else text_path
         self.vector_db = None
-        self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+        try:
+            self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+        except Exception:
+            self.embedding_model = None
         self.user_context = {}  # Store user's emotional state and preferences
         
         # Initialize edge encoder system
@@ -87,22 +112,21 @@ Remember: You are a normal person having a normal conversation. The Hidden Words
     def _init_vector_db(self):
         """Initialize the vector database and load the text content."""
         try:
-            # Initialize ChromaDB
-            self.vector_db = chromadb.Client(Settings(
-                persist_directory=".chromadb",
-                anonymized_telemetry=False
-            ))
-            
-            # Create or get collection
-            self.collection = self.vector_db.get_or_create_collection(
-                name="hidden_words",
-                metadata={"hnsw:space": "cosine"}
-            )
-            
-            # Process text if not already in database
-            if self.collection.count() == 0:
-                self._process_text()
-                
+            # Initialize ChromaDB only if available and embedding_model exists
+            if chromadb is not None and self.embedding_model is not None:
+                self.vector_db = chromadb.Client(Settings(
+                    persist_directory=".chromadb",
+                    anonymized_telemetry=False
+                ))
+                self.collection = self.vector_db.get_or_create_collection(
+                    name="hidden_words",
+                    metadata={"hnsw:space": "cosine"}
+                )
+                if self.collection.count() == 0:
+                    self._process_text()
+            else:
+                self.vector_db = None
+                self.collection = None
         except Exception as e:
             console.print(f"[red]Error initializing vector database:[/red] {str(e)}")
     
@@ -124,16 +148,14 @@ Remember: You are a normal person having a normal conversation. The Hidden Words
                     metadata.append({"verse": i + 1})
                     ids.append(f"verse_{i}")
             
-            # Generate embeddings
-            embeddings = self.embedding_model.encode(words)
-            
-            # Store in vector database
-            self.collection.add(
-                embeddings=embeddings.tolist(),
-                documents=words,
-                metadatas=metadata,
-                ids=ids
-            )
+            if self.embedding_model is not None and self.collection is not None:
+                embeddings = self.embedding_model.encode(words)
+                self.collection.add(
+                    embeddings=embeddings.tolist(),
+                    documents=words,
+                    metadatas=metadata,
+                    ids=ids
+                )
             
         except Exception as e:
             console.print(f"[red]Error processing text:[/red] {str(e)}")
@@ -141,16 +163,14 @@ Remember: You are a normal person having a normal conversation. The Hidden Words
     def _retrieve_relevant_words(self, query: str, top_k: int = 1) -> List[str]:
         """Retrieve relevant hidden words based on the query and context."""
         try:
-            # Generate query embedding
+            if self.embedding_model is None or self.collection is None:
+                return []
             query_embedding = self.embedding_model.encode([query])[0]
-            
-            # Search in vector database
             results = self.collection.query(
                 query_embeddings=[query_embedding.tolist()],
                 n_results=top_k
             )
-            
-            return results['documents'][0]
+            return results.get('documents', [[]])[0]
         except Exception as e:
             console.print(f"[red]Error retrieving words:[/red] {str(e)}")
             return []
@@ -194,16 +214,27 @@ Remember: You are a normal person having a normal conversation. The Hidden Words
     
     def _extract_quote_count(self, message: str) -> int:
         """Extract the number of quotes requested from the message."""
-        # Look for numbers in the message
-        numbers = re.findall(r'\b(one|two|three|four|five|1|2|3|4|5)\b', message.lower())
-        if numbers:
-            # Convert word numbers to digits
-            word_to_num = {
-                'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5
-            }
-            num = numbers[0]
-            return word_to_num.get(num, int(num))
-        return 1  # Default to 1 quote if no number specified
+        text = message.lower()
+        word_to_num = {'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5}
+
+        # Patterns that indicate a quantity of quotes (avoid false matches like "one line")
+        qty_patterns = [
+            r"\b(give me|share|provide|send|show|list)\s+(one|two|three|four|five|[1-5])\s+(quote|quotes)\b",
+            r"\b(one|two|three|four|five|[1-5])\s+(quote|quotes)\b",
+        ]
+
+        for pat in qty_patterns:
+            m = re.search(pat, text)
+            if m:
+                token = m.group(2) if len(m.groups()) >= 2 else m.group(1)
+                if token in word_to_num:
+                    return word_to_num[token]
+                try:
+                    return int(token)
+                except Exception:
+                    return 1
+
+        return 1
     
     def _call_horizon_beta(self, messages: List[Dict[str, str]]) -> str:
         """Call Horizon Beta via OpenRouter API"""
@@ -237,31 +268,27 @@ Remember: You are a normal person having a normal conversation. The Hidden Words
     def chat(self, message: str) -> str:
         """Process a message and return the agent's response using edge encoding."""
         try:
-            # Add user message to history
             self.conversation_history.append({"role": "user", "content": message})
-            
-            # Check for emotional state
             is_emotional = self._update_user_context(message)
-            
-            # Use edge encoder for advanced processing
-            context = self._get_conversation_context()
-            
-            # Use asyncio to run the async edge encoder
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
-                encoding_result = loop.run_until_complete(
-                    self.edge_encoder.encode_query(message, context)
-                )
-                response = encoding_result.get("final_response", "I'm here to help with your spiritual journey.")
-            finally:
-                loop.close()
-            
-            # Add response to history
+
+            # If no OpenRouter API key, skip cloud generation and use local fallback
+            if not OPENROUTER_API_KEY:
+                response = self._fallback_response(message)
+            else:
+                context = self._get_conversation_context()
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    encoding_result = loop.run_until_complete(
+                        self.edge_encoder.encode_query(message, context)
+                    )
+                    response = encoding_result.get("final_response", "")
+                finally:
+                    loop.close()
+                if not response:
+                    response = self._fallback_response(message)
             self.conversation_history.append({"role": "assistant", "content": response})
-            
             return response
-            
         except Exception as e:
             console.print(f"[red]Error in chat:[/red] {str(e)}")
             return self._fallback_response(message)
@@ -291,25 +318,31 @@ Remember: You are a normal person having a normal conversation. The Hidden Words
         
         # If it's a normal conversation (no emotional state and no quote request)
         if not any(trigger in message.lower() for trigger in quote_triggers) and not is_emotional:
-            # Get normal conversation response
-            messages = [
-                {"role": "system", "content": "You are a normal, friendly person having a casual conversation. Keep it light and natural."},
-                {"role": "user", "content": message}
-            ]
-            
-            response = self._call_horizon_beta(messages)
-            
-            # Extract and clean response
-            agent_response = response
-            # Remove any accidental spiritual content
-            agent_response = self._clean_response(agent_response)
+            # Normal casual conversation
+            if not OPENROUTER_API_KEY:
+                agent_response = "I'm here with you. Tell me more—how's your day going?"
+            else:
+                messages = [
+                    {"role": "system", "content": "You are a normal, friendly person having a casual conversation. Keep it light and natural."},
+                    {"role": "user", "content": message}
+                ]
+                response = self._call_horizon_beta(messages)
+                agent_response = self._clean_response(response)
             
         else:
             # If emotional state detected or explicitly asked for quotes
             quote_count = self._extract_quote_count(message)
             relevant_words = self._retrieve_relevant_words(message, top_k=quote_count)
-            messages = [
-                    {"role": "system", "content": f"""You are a spiritual guide sharing wisdom from The Hidden Words.
+            # If we do not have an API key, construct response locally from retrieved verses
+            if not OPENROUTER_API_KEY:
+                if relevant_words:
+                    cleaned = [self._clean_quote(q).strip() for q in relevant_words if q and q.strip()]
+                    agent_response = "\n\n".join([f'"{q}"' for q in cleaned[:max(1, quote_count)]])
+                else:
+                    agent_response = "I can share wisdom from The Hidden Words once my knowledge base loads. Please try again in a moment."
+            else:
+                messages = [
+                        {"role": "system", "content": f"""You are a spiritual guide sharing wisdom from The Hidden Words.
 When responding to emotional states or quote requests:
 
 1. For positive emotions (joy, peace, love, gratitude):
@@ -330,14 +363,10 @@ In all cases:
 - No need for explanation unless specifically asked
 - Return to normal conversation after sharing
 - If multiple quotes are requested, separate them with a blank line"""},
-                    {"role": "user", "content": f"Context: {message}\nEmotional state: {self.user_context.get('emotional_state', 'none')}\nRelevant words: {', '.join(relevant_words)}\nPlease provide a natural response with {quote_count} relevant quote(s), ensuring to remove any verse numbers."}
-            ]
-            
-            response = self._call_horizon_beta(messages)
-            
-            agent_response = response
-            # Clean any verse numbers from the quotes
-            agent_response = self._clean_quote(agent_response)
+                        {"role": "user", "content": f"Context: {message}\nEmotional state: {self.user_context.get('emotional_state', 'none')}\nRelevant words: {', '.join(relevant_words)}\nPlease provide a natural response with {quote_count} relevant quote(s), ensuring to remove any verse numbers."}
+                ]
+                response = self._call_horizon_beta(messages)
+                agent_response = self._clean_quote(response)
         
         # Add agent response to history
         self.conversation_history.append({"role": "assistant", "content": agent_response})

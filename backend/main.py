@@ -7,6 +7,7 @@ import qrcode
 from io import BytesIO
 import base64
 import json
+import sys
 from rag_agent import SpiritualGuideAgent
 from bahai_ux_designer_agent import BahaiUXDesignerAgent
 from bahai_mcp_integration import BahaiMCPIntegration
@@ -14,7 +15,10 @@ from llm_config import get_llm_config, set_primary_provider, LLMProvider
 import asyncio
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
-import whisper
+try:
+    import whisper  # heavy dependency
+except Exception:
+    whisper = None
 import tempfile
 import os
 import requests
@@ -30,6 +34,9 @@ logger = logging.getLogger(__name__)
 
 # Get the current directory
 BASE_DIR = Path(__file__).resolve().parent
+# Ensure backend directory is on sys.path for sibling imports when loaded as a module
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
 logger.debug(f"Base directory: {BASE_DIR}")
 
 app = FastAPI(title="Spiritual Quest")
@@ -49,6 +56,18 @@ if not os.path.exists(templates_dir):
     logger.error(f"Templates directory does not exist: {templates_dir}")
     os.makedirs(templates_dir, exist_ok=True)
 templates = Jinja2Templates(directory=templates_dir)
+# Lightweight health endpoint
+@app.get("/api/health")
+async def api_health():
+    try:
+        return {
+            "status": "healthy",
+            "service": "Spiritual Quest Backend",
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
 
 # Initialize agents and integrations
 rag_agent = SpiritualGuideAgent()
@@ -64,8 +83,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Load Whisper model
-model = whisper.load_model("base")
+# Load Whisper model if available, else fallback
+model = None
+if whisper is not None:
+    try:
+        model = whisper.load_model("base")
+    except Exception:
+        model = None
 
 # WebSocket connection settings
 WEBSOCKET_TIMEOUT = 1800  # 30 minutes for spiritual conversations
@@ -169,6 +193,8 @@ async def chat_endpoint(message: str = Form(...)):
     """API endpoint for chat without WebSocket"""
     try:
         response = rag_agent.chat(message)
+        if not response or not isinstance(response, str):
+            response = "I'm here to help. Please try your question again."
         return {
             "message": message,
             "response": response,
@@ -176,7 +202,13 @@ async def chat_endpoint(message: str = Form(...)):
         }
     except Exception as e:
         logger.error(f"Chat API error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        # Return graceful fallback instead of 500 to avoid breaking UX on parse edge-cases
+        return {
+            "message": message,
+            "response": "I’m here to help. Please try again.",
+            "timestamp": datetime.now().isoformat(),
+            "error": str(e)
+        }
 
 @app.post("/api/design")
 async def design_endpoint(request: str = Form(...), design_type: str = Form(default="interface")):
@@ -244,7 +276,12 @@ async def get_llm_providers():
         }
     except Exception as e:
         logger.error(f"LLM providers API error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        return {
+            "providers": [],
+            "current_provider": "unknown",
+            "timestamp": datetime.now().isoformat(),
+            "error": str(e)
+        }
 
 @app.post("/api/llm/set_provider")
 async def set_llm_provider(provider: str = Form(...)):
@@ -277,14 +314,23 @@ async def transcribe_audio(file: UploadFile = File(...)):
             temp_file.write(content)
             temp_file_path = temp_file.name
 
-        # Transcribe the audio
-        result = model.transcribe(temp_file_path)
-        transcribed_text = result["text"]
+        # Transcribe the audio if model is available
+        transcribed_text = ""
+        if model is not None:
+            try:
+                result = model.transcribe(temp_file_path)
+                transcribed_text = result.get("text", "")
+            except Exception:
+                transcribed_text = ""
 
-        # Forward the transcribed text to the agent system (Coordinator)
+        # Fallback: if transcription unavailable, return placeholder prompting user
+        if not transcribed_text:
+            transcribed_text = ""
+
+        # Forward the transcribed text (may be empty) to the agent system (Coordinator)
         coordinator_url = "http://localhost:8002/task"
         agent_payload = {
-            "text": transcribed_text,
+            "text": transcribed_text or "",
             "context": {},
             "target_agent": "orchestrator"
         }
@@ -328,11 +374,20 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             try:
                 # Set a timeout for receiving messages
-                message = await asyncio.wait_for(
+                raw_message = await asyncio.wait_for(
                     websocket.receive_text(),
                     timeout=WEBSOCKET_TIMEOUT
                 )
-                
+                # Parse JSON payloads sent by the frontend
+                try:
+                    parsed = json.loads(raw_message)
+                    if isinstance(parsed, dict) and parsed.get("type") == "chat":
+                        message = str(parsed.get("message", ""))
+                    else:
+                        message = raw_message
+                except Exception:
+                    message = raw_message
+
                 print(f"Received message from {client_id}: {message}")
                 
                 # Update last ping time
@@ -354,15 +409,18 @@ async def websocket_endpoint(websocket: WebSocket):
                 except Exception as e:
                     print(f"Error in RAG processing: {str(e)}")
                     response = "I apologize, but there was an error processing your request. Please try again."
+                if not response or not isinstance(response, str):
+                    response = "I am here to help. Please try again."
                 
                 print(f"Sending response to {client_id}: {response}")
                 
-                # Send response back to client
+                # Send response back to client, ensure safe string
+                safe_response = response if isinstance(response, str) else str(response)
                 await manager.send_message(
                     client_id,
                     json.dumps({
                         "type": "response",
-                        "content": response
+                        "content": safe_response
                     })
                 )
                 
@@ -390,10 +448,9 @@ async def websocket_endpoint(websocket: WebSocket):
 
 if __name__ == "__main__":
     uvicorn.run(
-        "main:app",
+        app,
         host="0.0.0.0",
         port=8000,
-        reload=True,
         timeout_keep_alive=WEBSOCKET_TIMEOUT,
         timeout_graceful_shutdown=30
     )
