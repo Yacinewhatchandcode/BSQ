@@ -40,7 +40,7 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 class SpiritualGuideAgent:
-    def __init__(self, model_name: str = "hybrid_edge", text_path: str = "hidden_words_reformatted.txt"):
+    def __init__(self, model_name: str = "openai_gpt5_mini", text_path: str = "hidden_words_reformatted.txt"):
         self.model_name = model_name
         self.conversation_history: List[Dict[str, str]] = []
         # Resolve text path relative to this file to avoid CWD issues
@@ -51,6 +51,8 @@ class SpiritualGuideAgent:
             self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
         except Exception:
             self.embedding_model = None
+        # Lightweight raw verses for fallback retrieval when embeddings are unavailable
+        self.raw_verses: List[str] = self._load_raw_verses(self.text_path)
         self.user_context = {}  # Store user's emotional state and preferences
         
         # Initialize edge encoder system
@@ -63,6 +65,14 @@ class SpiritualGuideAgent:
             self.edge_encoder.primary_provider = LLMProvider.OLLAMA
         elif model_name == "horizon_beta":
             self.edge_encoder.primary_provider = LLMProvider.OPENROUTER_HORIZON
+        elif model_name == "openai_gpt5_auto":
+            self.edge_encoder.primary_provider = LLMProvider.OPENAI_GPT5_AUTO
+        elif model_name == "openai_gpt5":
+            self.edge_encoder.primary_provider = LLMProvider.OPENAI_GPT5
+        elif model_name == "openai_gpt5_mini":
+            self.edge_encoder.primary_provider = LLMProvider.OPENAI_GPT5_MINI
+        elif model_name == "openai_gpt5_nano":
+            self.edge_encoder.primary_provider = LLMProvider.OPENAI_GPT5_NANO
         else:  # Default to hybrid edge encoding
             self.edge_encoder.primary_provider = LLMProvider.HYBRID_EDGE
         
@@ -130,6 +140,22 @@ Remember: You are a normal person having a normal conversation. The Hidden Words
         except Exception as e:
             console.print(f"[red]Error initializing vector database:[/red] {str(e)}")
     
+    def _load_raw_verses(self, path: str) -> List[str]:
+        """Load verses from text file for naive retrieval fallback."""
+        try:
+            with open(path, 'r') as f:
+                text = f.read()
+            verses = []
+            for v in text.split('\n\n'):
+                s = v.strip()
+                # Skip headers/metadata and very short chunks
+                if not s or s.startswith('#') or len(s) < 40:
+                    continue
+                verses.append(s)
+            return verses
+        except Exception:
+            return []
+    
     def _process_text(self):
         """Process the text file and store its content in the vector database."""
         try:
@@ -163,14 +189,36 @@ Remember: You are a normal person having a normal conversation. The Hidden Words
     def _retrieve_relevant_words(self, query: str, top_k: int = 1) -> List[str]:
         """Retrieve relevant hidden words based on the query and context."""
         try:
-            if self.embedding_model is None or self.collection is None:
-                return []
-            query_embedding = self.embedding_model.encode([query])[0]
-            results = self.collection.query(
-                query_embeddings=[query_embedding.tolist()],
-                n_results=top_k
-            )
-            return results.get('documents', [[]])[0]
+            # Embedding-based retrieval if available
+            if self.embedding_model is not None and getattr(self, 'collection', None) is not None:
+                query_embedding = self.embedding_model.encode([query])[0]
+                results = self.collection.query(
+                    query_embeddings=[query_embedding.tolist()],
+                    n_results=top_k
+                )
+                return results.get('documents', [[]])[0]
+            
+            # Fallback: naive retrieval over raw verses
+            if self.raw_verses:
+                text = query.lower()
+                # Derive simple keywords by splitting and removing short tokens
+                tokens = [t for t in re.split(r"[^a-zA-Z']+", text) if len(t) >= 3]
+                # If no tokens, just return first verses
+                if not tokens:
+                    return self.raw_verses[:top_k]
+                # Score verses by keyword occurrence count
+                scored: List[tuple[int, str]] = []
+                for verse in self.raw_verses:
+                    vlow = verse.lower()
+                    score = sum(1 for t in tokens if t in vlow)
+                    if score > 0:
+                        scored.append((score, verse))
+                if not scored:
+                    return self.raw_verses[:top_k]
+                scored.sort(key=lambda x: x[0], reverse=True)
+                return [v for _, v in scored[:top_k]]
+            
+            return []
         except Exception as e:
             console.print(f"[red]Error retrieving words:[/red] {str(e)}")
             return []
@@ -276,17 +324,46 @@ Remember: You are a normal person having a normal conversation. The Hidden Words
                 response = self._fallback_response(message)
             else:
                 context = self._get_conversation_context()
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
+                # Run async call safely whether called from sync or async context
                 try:
-                    encoding_result = loop.run_until_complete(
-                        self.edge_encoder.encode_query(message, context)
-                    )
+                    try:
+                        running = asyncio.get_running_loop()
+                        # Already inside an event loop: dispatch to thread
+                        encoding_result = asyncio.run(asyncio.to_thread(
+                            lambda: asyncio.run(self.edge_encoder.encode_query(message, context))
+                        ))
+                    except RuntimeError:
+                        # No running loop: create a fresh one
+                        response_future = self.edge_encoder.encode_query(message, context)
+                        encoding_result = asyncio.run(response_future)
                     response = encoding_result.get("final_response", "")
-                finally:
-                    loop.close()
+                except Exception as _err:
+                    response = ""
                 if not response:
                     response = self._fallback_response(message)
+            # Ensure quotes only for explicit spiritual/quote requests (deterministic, low cost)
+            quote_triggers = [
+                "quote", "hidden words", "spiritual guidance", 
+                "what does it say", "share wisdom", "teachings",
+                "quotation", "from the hidden words", "spiritual quote",
+                "any quote", "any quotation", "share a quote",
+                "retrieve", "get", "find", "show me"
+            ]
+            needs_quotes = any(t in message.lower() for t in quote_triggers)
+            if needs_quotes:
+                count = self._extract_quote_count(message)
+                verses = self._retrieve_relevant_words(message, top_k=count)
+                cleaned = [self._clean_quote(v).strip() for v in verses if v and v.strip()]
+                if cleaned:
+                    # For minimal cost and deterministic formatting, return pre-styled card HTML
+                    cards = []
+                    for q in cleaned:
+                        cards.append(
+                            '<div class="hidden-word-quote"><div class="quote-content">' +
+                            f'<div class="quote-text">{q}</div>' +
+                            '</div></div>'
+                        )
+                    response = "\n\n".join(cards)
             self.conversation_history.append({"role": "assistant", "content": response})
             return response
         except Exception as e:
@@ -316,21 +393,18 @@ Remember: You are a normal person having a normal conversation. The Hidden Words
         # Check for emotional state
         is_emotional = self._update_user_context(message)
         
-        # If it's a normal conversation (no emotional state and no quote request)
-        if not any(trigger in message.lower() for trigger in quote_triggers) and not is_emotional:
-            # Normal casual conversation
-            if not OPENROUTER_API_KEY:
-                agent_response = "I'm here with you. Tell me more—how's your day going?"
+        has_triggers = any(trigger in message.lower() for trigger in quote_triggers)
+        # If there is no explicit quote trigger, keep it normal (with empathy if needed), no quotes
+        if not has_triggers:
+            # Normal casual conversation (or empathetic response without quotes)
+            # Keep fully local to avoid external call failures
+            if is_emotional:
+                agent_response = "I'm here with you. That sounds tough—would you like to share a bit more about how you're feeling?"
             else:
-                messages = [
-                    {"role": "system", "content": "You are a normal, friendly person having a casual conversation. Keep it light and natural."},
-                    {"role": "user", "content": message}
-                ]
-                response = self._call_horizon_beta(messages)
-                agent_response = self._clean_response(response)
+                agent_response = "I'm here with you. Tell me more—how's your day going?"
             
         else:
-            # If emotional state detected or explicitly asked for quotes
+            # Explicitly asked for quotes
             quote_count = self._extract_quote_count(message)
             relevant_words = self._retrieve_relevant_words(message, top_k=quote_count)
             # If we do not have an API key, construct response locally from retrieved verses
@@ -367,6 +441,11 @@ In all cases:
                 ]
                 response = self._call_horizon_beta(messages)
                 agent_response = self._clean_quote(response)
+                # Ensure at least one explicit quoted passage is present for UI formatting
+                if '"' not in agent_response and relevant_words:
+                    first = self._clean_quote(relevant_words[0]).strip()
+                    if first:
+                        agent_response = f'"{first}"\n\n' + agent_response
         
         # Add agent response to history
         self.conversation_history.append({"role": "assistant", "content": agent_response})

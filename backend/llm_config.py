@@ -19,6 +19,10 @@ class LLMProvider(Enum):
     OLLAMA = "ollama"
     OPENROUTER_HORIZON = "openrouter_horizon"
     HYBRID_EDGE = "hybrid_edge"  # Uses both local and cloud for edge encoding
+    OPENAI_GPT5 = "openai_gpt5"
+    OPENAI_GPT5_MINI = "openai_gpt5_mini"
+    OPENAI_GPT5_NANO = "openai_gpt5_nano"
+    OPENAI_GPT5_AUTO = "openai_gpt5_auto"  # Auto-selects among gpt-5 / mini / nano
 
 class LLMConfig:
     """Configuration for different LLM providers"""
@@ -51,7 +55,40 @@ class LLMConfig:
                 "name": "Hybrid Edge Encoder",
                 "description": "Uses local LLM for encoding, Horizon Beta for generation",
                 "available": True
-            }
+            },
+            # OpenAI GPT-5 family
+            LLMProvider.OPENAI_GPT5: {
+                "name": "OpenAI GPT-5",
+                "endpoint": "https://api.openai.com/v1/chat/completions",
+                "model": "gpt-5",
+                "api_key": os.getenv("OPENAI_API_KEY", ""),
+                "available": True,
+                "description": "Flagship GPT-5 for advanced reasoning"
+            },
+            LLMProvider.OPENAI_GPT5_MINI: {
+                "name": "OpenAI GPT-5 Mini",
+                "endpoint": "https://api.openai.com/v1/chat/completions",
+                "model": "gpt-5-mini",
+                "api_key": os.getenv("OPENAI_API_KEY", ""),
+                "available": True,
+                "description": "Faster, cost-effective GPT-5 Mini"
+            },
+            LLMProvider.OPENAI_GPT5_NANO: {
+                "name": "OpenAI GPT-5 Nano",
+                "endpoint": "https://api.openai.com/v1/chat/completions",
+                "model": "gpt-5-nano",
+                "api_key": os.getenv("OPENAI_API_KEY", ""),
+                "available": True,
+                "description": "Lowest-latency GPT-5 Nano"
+            },
+            LLMProvider.OPENAI_GPT5_AUTO: {
+                "name": "OpenAI GPT-5 (Auto)",
+                "endpoint": "https://api.openai.com/v1/chat/completions",
+                "model": "auto",
+                "api_key": os.getenv("OPENAI_API_KEY", ""),
+                "available": True,
+                "description": "Auto route among GPT-5 / Mini / Nano"
+            },
         }
     
     def _check_local_gpt(self) -> bool:
@@ -85,7 +122,7 @@ class LLMConfig:
 class EdgeEncoder:
     """Edge encoding system using multiple LLMs for optimal performance"""
     
-    def __init__(self, primary_provider: LLMProvider = LLMProvider.HYBRID_EDGE):
+    def __init__(self, primary_provider: LLMProvider = LLMProvider.OPENAI_GPT5_MINI):
         self.config = LLMConfig()
         self.primary_provider = primary_provider
         self.fallback_provider = LLMProvider.OPENROUTER_HORIZON
@@ -246,6 +283,46 @@ Using this analysis, provide a thoughtful, spiritually enriching response that d
         except Exception as e:
             logger.error(f"Horizon Beta call failed: {e}")
             return f"I understand you're asking about {query}. While I'm having trouble accessing my full knowledge right now, please try again."
+
+    async def _generate_with_openai(self, query: str, analysis: Dict[str, Any], provider: LLMProvider) -> str:
+        """Generate final response using OpenAI GPT-5 family"""
+        cfg = self.config.providers[provider]
+        model = cfg["model"]
+        endpoint = cfg["endpoint"]
+        api_key = cfg.get("api_key", "")
+        if not api_key:
+            raise RuntimeError("OPENAI_API_KEY missing")
+        enhanced_prompt = f"""You are a spiritual guide for The Hidden Words by Bahá'u'lláh.
+
+Original Query: {query}
+
+Local Analysis:
+- Intent: {analysis.get('intent', 'spiritual_guidance')}
+- Keywords: {analysis.get('keywords', [])}
+- Emotional Tone: {analysis.get('emotional_tone', 'seeking')}
+- Spiritual Themes: {analysis.get('spiritual_themes', [])}
+
+Using this analysis, provide a brief, spiritually enriching response with relevant Hidden Words quote(s) when appropriate, without verse numbers.
+"""
+        try:
+            resp = requests.post(
+                endpoint,
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": model,
+                    "messages": [{"role": "user", "content": enhanced_prompt}],
+                    "temperature": 0.7,
+                },
+                timeout=30,
+            )
+            data = resp.json()
+            return data.get("choices", [{}])[0].get("message", {}).get("content", "")
+        except Exception as e:
+            logger.error(f"OpenAI GPT-5 call failed: {e}")
+            return "I understand. Please try again shortly."
     
     async def _single_provider_encode(self, query: str, context: str, provider: LLMProvider) -> Dict[str, Any]:
         """Use single provider for encoding and generation"""
@@ -258,6 +335,33 @@ Using this analysis, provide a thoughtful, spiritually enriching response that d
                 "final_response": response,
                 "encoding_method": "single_provider",
                 "provider_used": provider.value
+            }
+        elif provider in (LLMProvider.OPENAI_GPT5, LLMProvider.OPENAI_GPT5_MINI, LLMProvider.OPENAI_GPT5_NANO):
+            analysis = await self._analyze_locally(query, context)
+            response = await self._generate_with_openai(query, analysis, provider)
+            return {
+                "query": query,
+                "local_analysis": analysis,
+                "final_response": response,
+                "encoding_method": "single_provider",
+                "provider_used": provider.value
+            }
+        elif provider == LLMProvider.OPENAI_GPT5_AUTO:
+            # Simple auto-routing: detect complexity & triggers
+            text = f"{query}\n{context}".lower()
+            analysis = await self._analyze_locally(query, context)
+            # Heuristics: spiritual triggers or long inputs -> gpt-5; medium -> mini; short/simple -> nano
+            spiritual_triggers = ["hidden words", "quote", "spiritual", "o son of", "o friend", "guidance"]
+            long_input = len(text) > 500 or any(t in text for t in spiritual_triggers)
+            medium_input = len(text) > 140
+            target = LLMProvider.OPENAI_GPT5 if long_input else (LLMProvider.OPENAI_GPT5_MINI if medium_input else LLMProvider.OPENAI_GPT5_NANO)
+            response = await self._generate_with_openai(query, analysis, target)
+            return {
+                "query": query,
+                "local_analysis": analysis,
+                "final_response": response,
+                "encoding_method": "openai_gpt5_auto",
+                "provider_used": target.value
             }
         else:
             # For local providers, use them for both analysis and generation

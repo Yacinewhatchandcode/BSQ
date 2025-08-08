@@ -27,6 +27,10 @@ import time
 from pathlib import Path
 from datetime import datetime
 import logging
+try:
+    from dotenv import load_dotenv
+except Exception:
+    load_dotenv = None  # type: ignore
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -38,6 +42,19 @@ BASE_DIR = Path(__file__).resolve().parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 logger.debug(f"Base directory: {BASE_DIR}")
+
+# Load environment variables from project root and backend directories if available
+if load_dotenv is not None:
+    try:
+        root_env = BASE_DIR.parent / ".env"
+        local_env = BASE_DIR / ".env"
+        if root_env.exists():
+            load_dotenv(dotenv_path=str(root_env))
+        if local_env.exists():
+            load_dotenv(dotenv_path=str(local_env), override=False)
+        logger.debug(".env files loaded")
+    except Exception as _e:
+        logger.debug(f".env loading skipped: {_e}")
 
 app = FastAPI(title="Spiritual Quest")
 
@@ -398,11 +415,11 @@ async def websocket_endpoint(websocket: WebSocket):
                     await manager.send_message(client_id, json.dumps({"type": "pong"}))
                     continue
                 
-                # Process message with RAG agent
+                # Process message with RAG agent (chat() now ensures quotes/cards for triggers)
                 try:
                     response = await asyncio.wait_for(
                         asyncio.to_thread(rag_agent.chat, message),
-                        timeout=30  # 30 second timeout for RAG processing
+                        timeout=30
                     )
                 except asyncio.TimeoutError:
                     response = "I apologize, but the request took too long to process. Please try again."
@@ -420,7 +437,8 @@ async def websocket_endpoint(websocket: WebSocket):
                     client_id,
                     json.dumps({
                         "type": "response",
-                        "content": safe_response
+                        "content": safe_response,
+                        "response": safe_response  # for UIs expecting 'response'
                     })
                 )
                 

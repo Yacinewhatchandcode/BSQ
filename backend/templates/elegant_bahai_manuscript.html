@@ -562,9 +562,8 @@
                 class="search-input" 
                 id="messageInput"
                 placeholder="Seek wisdom from The Hidden Words..."
-                onkeypress="handleKeyPress(event)"
             >
-            <button class="reveal-button" onclick="sendMessage(); return false;">Reveal</button>
+            <button class="reveal-button" onclick="openAskModal(); return false;">Reveal</button>
         </div>
         
         <!-- Chat area (initially hidden) -->
@@ -576,6 +575,19 @@
         </div>
     </div>
     
+    <!-- Ask Wisdom Modal -->
+    <div id="askModal" style="display:none" class="fixed inset-0 z-50 place-items-center bg-black/60" role="dialog" aria-modal="true" aria-label="Seek wisdom dialog" onclick="if(event.target===this) closeAskModal()">
+        <div class="w-[min(720px,92vw)]" style="background: rgba(11,18,32,0.92); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 16px; color: #e5e7eb;">
+            <h2 style="font-size:18px; font-weight:600; margin-bottom:4px;">Seek wisdom</h2>
+            <p style="color:#94a3b8; font-size:12px; margin-bottom:8px;">Shift+Enter for newline. Cmd/Ctrl+Enter to reveal.</p>
+            <textarea id="askTextarea" placeholder="What is courage? What is love?" style="width:100%; height:140px; resize:vertical; background: rgba(255,255,255,0.04); color:#e5e7eb; border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:12px; outline:none;"></textarea>
+            <div style="margin-top:10px; display:flex; justify-content: flex-end; gap:8px;">
+                <button onclick="closeAskModal()" style="padding:8px 14px; border-radius:12px; background:rgba(255,255,255,0.06); color:#e5e7eb; border:1px solid rgba(255,255,255,0.08);">Cancel</button>
+                <button onclick="submitAskModal()" style="padding:8px 14px; border-radius:12px; background:#f59e0b; color:#111827; font-weight:600;">Reveal ⌘⏎</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Global variables
         let ws = null;
@@ -583,7 +595,7 @@
         let mediaRecorder = null;
         let audioChunks = [];
         
-        // Send message function (defined early)
+        // Simple input send (used only if field is non-empty and user explicitly submits)
         async function sendMessage() {
             console.log('sendMessage called');
             const input = document.getElementById('messageInput');
@@ -592,10 +604,9 @@
             console.log('Input value:', message);
             
             if (!message) {
-                console.log('No message, prompting for input');
-                message = prompt('Please enter your message:') || 'what is love';
-                input.value = message;
-                if (!message.trim()) return;
+                // No browser prompts: open in-app modal
+                openAskModal();
+                return;
             }
             
             console.log('Sending message:', message);
@@ -612,21 +623,62 @@
             // Show typing indicator
             showTypingIndicator();
             
-            // Try WebSocket first, fallback to HTTP
-            if (ws && ws.readyState === WebSocket.OPEN) {
+            // Route: use HTTP for spiritual/quote triggers to ensure card rendering
+            const lower = message.toLowerCase();
+            const triggers = [
+                'quote','hidden words','spiritual guidance','what does it say','share wisdom','teachings',
+                'quotation','from the hidden words','spiritual quote','any quote','any quotation','share a quote',
+                'retrieve','get','find','show me'
+            ];
+            const needsQuote = triggers.some(t => lower.includes(t));
+            if (needsQuote) {
+                console.log('Sending via HTTP API (spiritual/quote)');
+                await sendMessageHTTP(message);
+            } else if (ws && ws.readyState === WebSocket.OPEN) {
                 console.log('Sending via WebSocket');
-                ws.send(JSON.stringify({
-                    type: 'chat',
-                    message: message
-                }));
+                ws.send(JSON.stringify({ type: 'chat', message }));
             } else {
-                console.log('Sending via HTTP API');
+                console.log('Sending via HTTP API (fallback)');
                 await sendMessageHTTP(message);
             }
         }
         
         // Make sendMessage globally available
         window.sendMessage = sendMessage;
+
+        // -------- In-app Ask Wisdom Modal (replaces window.prompt) --------
+        function sanitizeUserText(raw, max=1000){
+            if (!raw) return '';
+            const withoutCtrl = raw.replace(/[\u0000-\u001F\u007F]/g, ' ');
+            return withoutCtrl.slice(0, max).trim();
+        }
+
+        function openAskModal(){
+            const m = document.getElementById('askModal');
+            const ta = document.getElementById('askTextarea');
+            if (!m || !ta) return;
+            m.style.display = 'grid';
+            ta.value = '';
+            setTimeout(()=>ta.focus(), 0);
+            document.addEventListener('keydown', escCloseHandler);
+        }
+        function closeAskModal(){
+            const m = document.getElementById('askModal');
+            if (m) m.style.display = 'none';
+            document.removeEventListener('keydown', escCloseHandler);
+        }
+        function escCloseHandler(e){ if(e.key==='Escape') closeAskModal(); }
+        async function submitAskModal(){
+            const ta = document.getElementById('askTextarea');
+            if(!ta) return;
+            const cleaned = sanitizeUserText(ta.value);
+            if(!cleaned) return;
+            closeAskModal();
+            // Put into the main input for visibility, then send
+            const input = document.getElementById('messageInput');
+            if (input) input.value = cleaned;
+            await sendMessage();
+        }
         
         // Create starfield
         function createStarfield() {
@@ -675,8 +727,21 @@
             
             // Enhanced formatting for agent responses
             if (sender === 'agent') {
-                // Check if it contains quotes
-                if (text.includes('"')) {
+                const trimmed = (text || '').trim();
+                // If server already sent a pre-formatted quote card, render it directly
+                if (trimmed.startsWith('<div class="hidden-word-quote"') || trimmed.includes('hidden-word-quote')) {
+                    content.innerHTML = trimmed;
+                    messageDiv.appendChild(content);
+                    chatMessages.appendChild(messageDiv);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                    return;
+                }
+                const lower = text.toLowerCase();
+                const isHiddenWordsCue = lower.includes('hidden words') || lower.includes('o son of') || lower.includes('o friend') || lower.includes('o children');
+                // If content looks like Hidden Words even without explicit quotes, render as quote card
+                if (isHiddenWordsCue && !text.includes('"')) {
+                    content.innerHTML = createHiddenWordCard(text, null);
+                } else if (text.includes('"')) {
                     // Check for single quote with context
                     const singleQuoteMatch = text.match(/^([^"]*)"([^"]+)"(.*)$/);
                     if (singleQuoteMatch && !text.match(/\d+\.\s*"/)) {
@@ -984,11 +1049,20 @@
         }
         
         // Handle Enter key
-        function handleKeyPress(event) {
-            if (event.key === 'Enter') {
-                sendMessage();
+        // Keyboard handling: Enter does nothing, Shift+Enter newline (textarea only), Cmd/Ctrl+Enter submits modal
+        document.addEventListener('keydown', (e)=>{
+            const ta = document.getElementById('askTextarea');
+            const modal = document.getElementById('askModal');
+            const isOpen = modal && modal.style.display === 'grid';
+            if (isOpen && ta && ta === document.activeElement){
+                if ((e.key === 'Enter') && (e.metaKey || e.ctrlKey)){
+                    e.preventDefault();
+                    submitAskModal();
+                } else if (e.key === 'Enter' && !e.shiftKey){
+                    e.preventDefault(); // no plain Enter submit
+                }
             }
-        }
+        });
         
         // Show status message
         function showStatus(message, type) {
