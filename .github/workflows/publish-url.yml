@@ -1,0 +1,31 @@
+name: Publish Deployment URL
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Deployment URL (e.g., https://your-app.example.com)"
+        required: false
+  push:
+    branches: [ main ]
+
+jobs:
+  set-homepage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set repository homepage from DEPLOY_URL secret (if present)
+        if: ${{ secrets.DEPLOY_URL !=  }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEPLOY_URL: ${{ secrets.DEPLOY_URL }}
+        run: |
+          echo "Setting homepage to ${DEPLOY_URL}"
+          gh api -X PATCH repos/${{ github.repository }} -f homepage="${DEPLOY_URL}"
+      - name: Set homepage from manual input (workflow_dispatch)
+        if: ${{ github.event_name == workflow_dispatch && inputs.url !=  }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          URL_IN: ${{ inputs.url }}
+        run: |
+          echo "Setting homepage to ${URL_IN}"
+          gh api -X PATCH repos/${{ github.repository }} -f homepage="${URL_IN}"

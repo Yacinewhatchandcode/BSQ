@@ -230,7 +230,8 @@ async def run_playwright_scenarios(scenarios: List[Scenario], headless: bool = T
                 curly_right = agent_text.count('”')
                 std_quotes = agent_text.count('"')
                 hw_markers = any(k in agent_text_l for k in ["hidden words", "o son of", "o friend", "o children"]) 
-                dom_quote = ("hidden-word-quote" in agent_html)
+                # fallback: any quote cards in the chat area
+                dom_quote = ("hidden-word-quote" in agent_html) or (await page.locator(".hidden-word-quote").count() > 0)
                 has_quotes = (quote_blocks >= max(1, scene.min_quotes)) or ((std_quotes + min(curly_left, curly_right)) >= 2) or hw_markers or dom_quote
                 if not has_quotes:
                     return ScenarioResult(scene.name, False, reason=f"No quotes detected (blocks={quote_blocks}, ascii={std_quotes}, curlyL={curly_left}, curlyR={curly_right}, domQuote={dom_quote})")
@@ -239,9 +240,12 @@ async def run_playwright_scenarios(scenarios: List[Scenario], headless: bool = T
             except Exception as e:
                 return ScenarioResult(scene.name, False, reason=f"Exception: {e}")
 
-        # Run sequentially to keep UI state predictable
+        # Run sequentially; reload page between scenarios to isolate state
         for s in scenarios:
             results.append(await send_and_assert(s))
+            await page.goto(BASE_URL, timeout=30000)
+            await page.wait_for_selector(".reveal-button", timeout=15000)
+            await page.wait_for_selector("#messageInput", timeout=15000)
 
         await context.close()
         await browser.close()

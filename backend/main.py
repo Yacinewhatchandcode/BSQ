@@ -209,11 +209,13 @@ async def generate_qr():
 async def chat_endpoint(message: str = Form(...)):
     """API endpoint for chat without WebSocket"""
     try:
-        response = rag_agent.chat(message)
+        # Sanitize/minify repeated whitespace so the agent sees clean text
+        clean_msg = " ".join((message or "").split())
+        response = rag_agent.chat(clean_msg)
         if not response or not isinstance(response, str):
             response = "I'm here to help. Please try your question again."
         return {
-            "message": message,
+            "message": clean_msg,
             "response": response,
             "timestamp": datetime.now().isoformat()
         }
@@ -221,7 +223,7 @@ async def chat_endpoint(message: str = Form(...)):
         logger.error(f"Chat API error: {str(e)}")
         # Return graceful fallback instead of 500 to avoid breaking UX on parse edge-cases
         return {
-            "message": message,
+            "message": (message or ""),
             "response": "I’m here to help. Please try again.",
             "timestamp": datetime.now().isoformat(),
             "error": str(e)
@@ -333,35 +335,29 @@ async def transcribe_audio(file: UploadFile = File(...)):
 
         # Transcribe the audio if model is available
         transcribed_text = ""
+        status = "ok"
+        error = None
         if model is not None:
             try:
                 result = model.transcribe(temp_file_path)
-                transcribed_text = result.get("text", "")
-            except Exception:
-                transcribed_text = ""
-
-        # Fallback: if transcription unavailable, return placeholder prompting user
-        if not transcribed_text:
-            transcribed_text = ""
-
-        # Forward the transcribed text (may be empty) to the agent system (Coordinator)
-        coordinator_url = "http://localhost:8002/task"
-        agent_payload = {
-            "text": transcribed_text or "",
-            "context": {},
-            "target_agent": "orchestrator"
-        }
-        agent_response = requests.post(coordinator_url, json=agent_payload, timeout=30)
-        agent_data = agent_response.json()
+                transcribed_text = (result or {}).get("text", "")
+                if not transcribed_text.strip():
+                    status = "no_speech"
+                    error = "no_speech_detected"
+            except Exception as e:
+                status = "error"
+                error = f"transcription_failed: {e}"
+        else:
+            status = "error"
+            error = "transcription_unavailable"
 
         # Clean up the temporary file
         os.unlink(temp_file_path)
 
         return {
             "text": transcribed_text,
-            "agent_response": agent_data.get("response", ""),
-            "status": agent_data.get("status", "error"),
-            "error": agent_data.get("error")
+            "status": status,
+            "error": error
         }
     except Exception as e:
         return {"error": str(e)}

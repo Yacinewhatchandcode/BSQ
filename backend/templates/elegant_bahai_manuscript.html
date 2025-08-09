@@ -193,6 +193,36 @@
             justify-content: center;
         }
 
+        /* TTS Toggle button */
+        .tts-button {
+            position: absolute;
+            right: 120px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 50px;
+            height: 50px;
+            background: rgba(40, 167, 69, 0.15);
+            border: 1px solid rgba(40, 167, 69, 0.5);
+            border-radius: 50%;
+            color: #28a745;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tts-button.off {
+            background: rgba(220, 53, 69, 0.15);
+            border-color: #dc3545;
+            color: #dc3545;
+        }
+
+        .tts-button:hover {
+            transform: translateY(-50%) scale(1.1);
+        }
+
         .voice-button:hover {
             background: rgba(212, 175, 55, 0.3);
             transform: translateY(-50%) scale(1.1);
@@ -541,7 +571,8 @@
     
     <!-- Main container -->
     <div class="manuscript-container">
-        <!-- Voice button -->
+        <!-- TTS toggle and Voice button -->
+        <button class="tts-button" id="ttsToggle" title="Toggle Text-to-Speech">🔊</button>
         <button class="voice-button" id="voiceButton" onclick="toggleVoice()">🎤</button>
         
         <!-- Persian title -->
@@ -594,6 +625,8 @@
         let isRecording = false;
         let mediaRecorder = null;
         let audioChunks = [];
+        let ttsEnabled = true;
+        let lastSpoken = "";
         
         // Simple input send (used only if field is non-empty and user explicitly submits)
         async function sendMessage() {
@@ -764,6 +797,11 @@
             
             // Scroll to bottom
             chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // Speak agent responses (frontend TTS)
+            if (sender === 'agent') {
+                speak(text);
+            }
         }
         
         // Create beautiful quote display
@@ -988,38 +1026,72 @@
         // Voice recording
         async function toggleVoice() {
             const button = document.getElementById('voiceButton');
-            
-            if (!isRecording) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+            // Prefer on-device Web Speech API if available
+            if (SpeechRecognition) {
                 try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    mediaRecorder = new MediaRecorder(stream);
-                    audioChunks = [];
-                    
-                    mediaRecorder.ondataavailable = function(event) {
-                        audioChunks.push(event.data);
-                    };
-                    
-                    mediaRecorder.onstop = function() {
-                        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                        sendAudioToServer(audioBlob);
-                        stream.getTracks().forEach(track => track.stop());
-                    };
-                    
-                    mediaRecorder.start();
-                    isRecording = true;
+                    const recognizer = new SpeechRecognition();
+                    recognizer.lang = 'en-US';
+                    recognizer.interimResults = false;
+                    recognizer.maxAlternatives = 1;
                     button.classList.add('recording');
                     button.textContent = '⏹️';
-                    showStatus('Listening to your sacred words...', 'success');
-                } catch (error) {
-                    console.error('Microphone error:', error);
-                    showStatus('Cannot access microphone', 'error');
+                    showStatus('Listening…', 'success');
+
+                    recognizer.onresult = (ev) => {
+                        const txt = (ev.results[0] && ev.results[0][0] && ev.results[0][0].transcript) || '';
+                        const input = document.getElementById('messageInput');
+                        input.value = txt;
+                        showStatus('Transcribed. Sending…', 'success');
+                        sendMessage();
+                    };
+                    recognizer.onerror = (ev) => {
+                        console.warn('SpeechRecognition error:', ev.error);
+                        showStatus('Speech recognition error. Falling back to server.', 'error');
+                        // fallback to server-side recording
+                        startServerRecording(button);
+                    };
+                    recognizer.onend = () => {
+                        button.classList.remove('recording');
+                        button.textContent = '🎤';
+                    };
+                    recognizer.start();
+                } catch (e) {
+                    console.warn('SpeechRecognition start failed:', e);
+                    await startServerRecording(button);
                 }
-            } else {
-                mediaRecorder.stop();
-                isRecording = false;
-                button.classList.remove('recording');
-                button.textContent = '🎤';
-                showStatus('Processing your words...', 'success');
+                return;
+            }
+
+            // Fallback to server-side Whisper transcription
+            await startServerRecording(button);
+        }
+
+        async function startServerRecording(button) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+                
+                mediaRecorder.ondataavailable = function(event) {
+                    audioChunks.push(event.data);
+                };
+                
+                mediaRecorder.onstop = function() {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    sendAudioToServer(audioBlob);
+                    stream.getTracks().forEach(track => track.stop());
+                };
+                
+                mediaRecorder.start();
+                isRecording = true;
+                button.classList.add('recording');
+                button.textContent = '⏹️';
+                showStatus('Listening…', 'success');
+            } catch (error) {
+                console.error('Microphone error:', error);
+                showStatus('Cannot access microphone', 'error');
             }
         }
         
@@ -1035,12 +1107,18 @@
                 });
                 
                 const data = await response.json();
-                if (data.text) {
-                    const input = document.getElementById('messageInput');
+                const input = document.getElementById('messageInput');
+                if (data && typeof data.text === 'string' && data.text.trim()) {
                     input.value = data.text;
-                    input.focus();
-                    input.select();
-                    showStatus('Words transcribed successfully', 'success');
+                    showStatus('Transcribed. Sending…', 'success');
+                    // Auto-send once we have text
+                    sendMessage();
+                } else if (data && data.status === 'no_speech') {
+                    showStatus('No speech detected. Try again closer to the mic.', 'error');
+                } else if (data && data.status === 'error') {
+                    showStatus('Transcription unavailable on this device.', 'error');
+                } else {
+                    showStatus('Could not understand. Please try again.', 'error');
                 }
             } catch (error) {
                 console.error('Transcription error:', error);
@@ -1137,6 +1215,41 @@
             }
         }
 
+        // ===== Frontend TTS (speechSynthesis) =====
+        function speak(text) {
+            try {
+                if (!ttsEnabled) return;
+                if (!('speechSynthesis' in window)) return;
+                const plain = String(text || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+                if (!plain) return;
+                if (plain === lastSpoken) return; // avoid repeating the same sentence
+                window.speechSynthesis.cancel();
+                const utter = new SpeechSynthesisUtterance(plain);
+                utter.lang = 'en-US';
+                utter.rate = 1.0;
+                utter.pitch = 1.0;
+                window.speechSynthesis.speak(utter);
+                lastSpoken = plain;
+            } catch (e) {
+                console.warn('TTS error:', e);
+            }
+        }
+
+        function toggleTTS() {
+            ttsEnabled = !ttsEnabled;
+            const btn = document.getElementById('ttsToggle');
+            if (ttsEnabled) {
+                btn.classList.remove('off');
+                btn.textContent = '🔊';
+                showStatus('Voice: On', 'success');
+            } else {
+                btn.classList.add('off');
+                btn.textContent = '🔇';
+                window.speechSynthesis && window.speechSynthesis.cancel();
+                showStatus('Voice: Off', 'error');
+            }
+        }
+
         // Test function for debugging
         function testConnection() {
             console.log('Test function called');
@@ -1175,6 +1288,12 @@
                 });
             } else {
                 console.error('Button not found!');
+            }
+
+            // Bind TTS toggle
+            const ttsBtn = document.getElementById('ttsToggle');
+            if (ttsBtn) {
+                ttsBtn.addEventListener('click', toggleTTS);
             }
         });
     </script>

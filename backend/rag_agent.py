@@ -38,6 +38,7 @@ console = Console()
 # OpenRouter Configuration (fallback)
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
 class SpiritualGuideAgent:
     def __init__(self, model_name: str = "openai_gpt5_mini", text_path: str = "hidden_words_reformatted.txt"):
@@ -313,6 +314,46 @@ Remember: You are a normal person having a normal conversation. The Hidden Words
             console.print(f"[red]Error calling Horizon Beta:[/red] {str(e)}")
             return "I'm having trouble connecting right now. Can you try again?"
     
+    def _call_openai_gpt5(self, messages: List[Dict[str, str]], model: str = "gpt-5-mini") -> str:
+        """Call OpenAI GPT-5 family directly if key available."""
+        api_key = OPENAI_API_KEY
+        if not api_key:
+            return ""
+        try:
+            resp = requests.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": model,
+                    "messages": messages,
+                    "temperature": 0.7,
+                },
+                timeout=30,
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                return data.get("choices", [{}])[0].get("message", {}).get("content", "")
+            return ""
+        except Exception:
+            return ""
+
+    def _call_ollama_text(self, prompt: str) -> str:
+        """Best-effort local generation via Ollama if running."""
+        try:
+            r = requests.post(
+                "http://localhost:11434/api/generate",
+                json={"model": "qwen2.5:7b", "prompt": prompt, "stream": False},
+                timeout=20,
+            )
+            if r.status_code == 200:
+                return r.json().get("response", "")
+            return ""
+        except Exception:
+            return ""
+
     def chat(self, message: str) -> str:
         """Process a message and return the agent's response using edge encoding."""
         try:
@@ -394,53 +435,56 @@ Remember: You are a normal person having a normal conversation. The Hidden Words
         is_emotional = self._update_user_context(message)
         
         has_triggers = any(trigger in message.lower() for trigger in quote_triggers)
-        # If there is no explicit quote trigger, keep it normal (with empathy if needed), no quotes
+        # If there is no explicit quote trigger, generate with external model chain (Horizon -> OpenAI -> Ollama),
+        # and fall back to local empathy only if all fail. No quotes allowed in this branch.
         if not has_triggers:
-            # Normal casual conversation (or empathetic response without quotes)
-            # Keep fully local to avoid external call failures
-            if is_emotional:
-                agent_response = "I'm here with you. That sounds tough—would you like to share a bit more about how you're feeling?"
-            else:
-                agent_response = "I'm here with you. Tell me more—how's your day going?"
+            system = {
+                "role": "system",
+                "content": "You are a normal, friendly person having a casual conversation. Be concise, kind, and do NOT include any spiritual content or quotes.",
+            }
+            user = {"role": "user", "content": message}
+            response = ""
+            # 1) Horizon if key
+            if OPENROUTER_API_KEY:
+                response = self._call_horizon_beta([system, user])
+            # 2) OpenAI GPT‑5 Mini if key
+            if not response and OPENAI_API_KEY:
+                response = self._call_openai_gpt5([system, user], model="gpt-5-mini")
+            # 3) Ollama local if available
+            if not response:
+                response = self._call_ollama_text(f"System: {system['content']}\nUser: {message}\nAssistant:")
+            # 4) Final fallback: local empathy
+            agent_response = self._clean_response(response) if response else (
+                "I'm here with you. That sounds tough—would you like to share a bit more about how you're feeling?" if is_emotional else
+                "I'm here with you. Tell me more—how's your day going?"
+            )
+            # Avoid UI quote-card detection for normal talk by stripping straight quotes
+            agent_response = agent_response.replace('"', '')
             
         else:
-            # Explicitly asked for quotes
+            # Explicit quotes: build pre-styled quote cards from retrieved verses (deterministic)
             quote_count = self._extract_quote_count(message)
             relevant_words = self._retrieve_relevant_words(message, top_k=quote_count)
-            # If we do not have an API key, construct response locally from retrieved verses
-            if not OPENROUTER_API_KEY:
-                if relevant_words:
-                    cleaned = [self._clean_quote(q).strip() for q in relevant_words if q and q.strip()]
-                    agent_response = "\n\n".join([f'"{q}"' for q in cleaned[:max(1, quote_count)]])
-                else:
-                    agent_response = "I can share wisdom from The Hidden Words once my knowledge base loads. Please try again in a moment."
+            cleaned = [self._clean_quote(q).strip() for q in relevant_words if q and q.strip()]
+            if cleaned:
+                cards = []
+                for q in cleaned[:max(1, quote_count)]:
+                    cards.append(
+                        '<div class="hidden-word-quote"><div class="quote-content">'
+                        f'<div class="quote-text">{q}</div>'
+                        '</div></div>'
+                    )
+                agent_response = "\n\n".join(cards)
             else:
+                # If no local verses, try a model to generate quotes
                 messages = [
-                        {"role": "system", "content": f"""You are a spiritual guide sharing wisdom from The Hidden Words.
-When responding to emotional states or quote requests:
-
-1. For positive emotions (joy, peace, love, gratitude):
-   - Acknowledge the positive feeling (e.g., "It's wonderful that you're feeling joyful...")
-   - Share {quote_count} uplifting quote(s) without verse numbers
-   - Keep them brief and relevant
-
-2. For negative emotions (sadness, anxiety, struggle):
-   - Acknowledge the feeling with empathy (e.g., "I understand you're feeling down...")
-   - Share {quote_count} comforting quote(s) without verse numbers
-   - Keep them brief and relevant
-
-3. For direct quote requests:
-   - Share {quote_count} relevant quote(s) without verse numbers
-   - Keep them brief and relevant
-
-In all cases:
-- No need for explanation unless specifically asked
-- Return to normal conversation after sharing
-- If multiple quotes are requested, separate them with a blank line"""},
-                        {"role": "user", "content": f"Context: {message}\nEmotional state: {self.user_context.get('emotional_state', 'none')}\nRelevant words: {', '.join(relevant_words)}\nPlease provide a natural response with {quote_count} relevant quote(s), ensuring to remove any verse numbers."}
+                    {"role": "system", "content": "Share concise Hidden Words quote(s) only, no verse numbers."},
+                    {"role": "user", "content": message},
                 ]
-                response = self._call_horizon_beta(messages)
-                agent_response = self._clean_quote(response)
+                response = self._call_horizon_beta(messages) if OPENROUTER_API_KEY else ""
+                if not response and OPENAI_API_KEY:
+                    response = self._call_openai_gpt5(messages, model="gpt-5-mini")
+                agent_response = self._clean_quote(response) if response else "Please try again in a moment."
                 # Ensure at least one explicit quoted passage is present for UI formatting
                 if '"' not in agent_response and relevant_words:
                     first = self._clean_quote(relevant_words[0]).strip()

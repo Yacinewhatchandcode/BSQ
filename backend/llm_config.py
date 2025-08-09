@@ -23,6 +23,7 @@ class LLMProvider(Enum):
     OPENAI_GPT5_MINI = "openai_gpt5_mini"
     OPENAI_GPT5_NANO = "openai_gpt5_nano"
     OPENAI_GPT5_AUTO = "openai_gpt5_auto"  # Auto-selects among gpt-5 / mini / nano
+    OPENWEIGHT_GPT_OSS = "gpt_oss"  # Open-weights, OpenAI-compatible endpoint
 
 class LLMConfig:
     """Configuration for different LLM providers"""
@@ -88,6 +89,14 @@ class LLMConfig:
                 "api_key": os.getenv("OPENAI_API_KEY", ""),
                 "available": True,
                 "description": "Auto route among GPT-5 / Mini / Nano"
+            },
+            LLMProvider.OPENWEIGHT_GPT_OSS: {
+                "name": "GPT-OSS (Open-weights)",
+                "endpoint": os.getenv("GPT_OSS_BASE_URL", "http://127.0.0.1:8001/v1"),
+                "model": os.getenv("GPT_OSS_MODEL", "gpt-oss-reasoner"),
+                "api_key": os.getenv("GPT_OSS_API_KEY", ""),
+                "available": True,
+                "description": "Open-weight reasoning model via OpenAI-compatible endpoint"
             },
         }
     
@@ -323,6 +332,29 @@ Using this analysis, provide a brief, spiritually enriching response with releva
         except Exception as e:
             logger.error(f"OpenAI GPT-5 call failed: {e}")
             return "I understand. Please try again shortly."
+
+    async def _generate_with_gpt_oss(self, prompt: str) -> str:
+        """Generate response using an OpenAI-compatible open-weight endpoint (GPT-OSS)."""
+        cfg = self.config.providers[LLMProvider.OPENWEIGHT_GPT_OSS]
+        try:
+            headers = {"Content-Type": "application/json"}
+            if cfg.get("api_key"):
+                headers["Authorization"] = f"Bearer {cfg['api_key']}"
+            resp = requests.post(
+                f"{cfg['endpoint'].rstrip('/')}/chat/completions",
+                headers=headers,
+                json={
+                    "model": cfg["model"],
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.7,
+                },
+                timeout=30,
+            )
+            data = resp.json()
+            return data.get("choices", [{}])[0].get("message", {}).get("content", "")
+        except Exception as e:
+            logger.error(f"GPT-OSS call failed: {e}")
+            return ""
     
     async def _single_provider_encode(self, query: str, context: str, provider: LLMProvider) -> Dict[str, Any]:
         """Use single provider for encoding and generation"""
@@ -362,6 +394,15 @@ Using this analysis, provide a brief, spiritually enriching response with releva
                 "final_response": response,
                 "encoding_method": "openai_gpt5_auto",
                 "provider_used": target.value
+            }
+        elif provider == LLMProvider.OPENWEIGHT_GPT_OSS:
+            prompt = f"User: {query}\n\nContext: {context}\nAnswer clearly and helpfully."
+            response = await self._generate_with_gpt_oss(prompt)
+            return {
+                "query": query,
+                "final_response": response,
+                "encoding_method": "gpt_oss",
+                "provider_used": provider.value
             }
         else:
             # For local providers, use them for both analysis and generation
