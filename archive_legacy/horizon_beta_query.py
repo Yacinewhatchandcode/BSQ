@@ -2,7 +2,7 @@ import requests
 import json
 
 # === CONFIGURATION ===
-API_KEY = "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"  # 🔑 Your OpenRouter API key
+API_KEY = os.environ.get("OPENROUTER_API_KEY", "")  # 🔑 Your OpenRouter API key
 API_URL = "https://openrouter.ai/api/v1/chat/completions"
 MODEL_ID = "openrouter/horizon-beta"
 

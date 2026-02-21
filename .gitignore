@@ -83,3 +83,11 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
+
+# Security - never commit secrets
+.env.development
+*.pem
+*.key
+id_rsa
+id_ed25519
+credentials.json
